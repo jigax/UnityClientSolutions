@@ -46,9 +46,10 @@ public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
 		}
 	}
 	
-	virtual protected void Awake()
+	protected virtual void Awake()
 	{
 		CheckInstance();
+		this.OnAwake();
 	}
 	
 	protected bool CheckInstance()
@@ -64,5 +65,8 @@ public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
 		
 		Destroy(this);
 		return false;
+	}
+	protected virtual void OnAwake(){
+		
 	}
 }

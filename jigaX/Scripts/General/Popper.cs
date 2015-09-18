@@ -59,7 +59,12 @@ public class Popper : MonoBehaviour {
 		if( this.isInRoot ){
 			parent = null;
 		}else if( this.isInCanvas ){
-			g.transform.SetParent( CanvasRef.Instance.transform );
+			var canvas = GameObject.Find("Canvas");
+			if( canvas == null ){
+				Debug.LogError("canvas not found",this);
+				Debug.Break();
+			}
+			g.transform.SetParent( canvas.transform );
 			if( this.useOriginScale ){
 				g.transform.localScale = o;
 			}else{
