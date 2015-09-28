@@ -35,11 +35,18 @@ public class CameraDolly : MonoBehaviour {
 	void Update () {
 		if( this.followingTarget == null ) return;
 		
-		this.transform.position = followingTarget.position;
+		//this.transform.position = followingTarget.position;
+		this.Apply();
 	}
+	[SerializeField]float defaultHeight = 0f; 
+	// Inspectorのボタンで呼ばせる関数
+	# region Trigger from Inspectors
 	public void Apply(){
-		this.transform.position = followingTarget.position;
+		var p = followingTarget.position;
+		this.transform.position = new Vector3( p.x, this.defaultHeight, p.z );
 	}
+	
+	# endregion //Trigger from Inspectors
 	
 	
 	
