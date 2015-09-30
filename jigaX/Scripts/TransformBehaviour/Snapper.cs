@@ -22,9 +22,19 @@ using System.Collections.Generic;
 namespace jigaX
 {
 public class Snapper : MonoBehaviour {
-	public Transform target;
+	Transform m_target;
+	public Transform target{
+		get{return this.m_target;}
+		set{
+			if( value == null ) return;
+			this.targetPosition = value.position;
+			this.m_target = value;
+		}
+	}
 	public SimpleEventHandler OnStartSnapReaction; 
 	public SimpleEventHandler OnFinishSnapReaction; 
+	
+	public Vector3 targetPosition;
 	
 	bool isSnapping = false;
 	IEnumerator snap;
@@ -37,6 +47,12 @@ public class Snapper : MonoBehaviour {
 		this.snap = this.DoSnap();
 		StartCoroutine(this.snap);
 	}
+	void Update(){
+		if( this.isHorming ){
+			// targetPositionを更新。
+			this.target = this.target;
+		}
+	}
 	Vector3 from;
 	[SerializeField]bool isHorming = true;
 	[SerializeField]float defaultSnapSpeed = 1f;
@@ -44,21 +60,17 @@ public class Snapper : MonoBehaviour {
 		if( this.OnStartSnapReaction != null) this.OnStartSnapReaction();
 		float progress = 0f;
 		this.from = this.transform.position;
-		var to = target.position;
 		var snapSpeed = this.defaultSnapSpeed;
 		while( progress < 1f && snapSpeed > 0f ){
-			
-			to = this.isHorming ? this.target.position : to;
-			
-			this.transform.position = Vector3.Lerp( this.from, to, progress );
+			this.transform.position = Vector3.Lerp( this.from, targetPosition, progress );
 			// 徐々に早く
 			snapSpeed += snapSpeed * 0.1f;
 			progress += Time.deltaTime * snapSpeed;
 			yield return null;
 		}
 		
-		this.transform.position = this.target.position;
-
+		this.transform.position = this.targetPosition;
+		this.isSnapping = false;
 		if( this.OnFinishSnapReaction != null )this.OnFinishSnapReaction();
 		
 	}
