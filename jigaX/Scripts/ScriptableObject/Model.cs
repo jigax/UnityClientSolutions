@@ -21,11 +21,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace jigaX{
+public interface IInitializable{
+	void ResetAsInitialization();
+}
+	
+	
 public abstract class Model : ScriptableObject {
 	public ModelEventHandler OnUpdateData;
 	public abstract void ResetDefault();
 	
-	
+	public virtual void ResetAsInitialization(){}
 	
 }
 public delegate void ModelEventHandler();
