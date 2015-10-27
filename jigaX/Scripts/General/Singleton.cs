@@ -8,7 +8,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
-using UniRx;
+//using UniRx;
 
 public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
 {

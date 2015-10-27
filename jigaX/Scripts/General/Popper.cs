@@ -7,7 +7,7 @@
 -------------------------------------------------*/
 using UnityEngine;
 using System.Collections;
-using UniRx;
+//using UniRx;
 
 public class Popper : MonoBehaviour {
 

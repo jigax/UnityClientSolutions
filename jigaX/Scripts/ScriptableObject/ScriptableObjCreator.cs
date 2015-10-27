@@ -12,7 +12,6 @@ Description:
 
 -------------------------------------------------*/
 using UnityEngine;
-using RunGame;
 # if UNITY_EDITOR
 using UnityEditor;
 
