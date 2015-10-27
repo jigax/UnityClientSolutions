@@ -14,6 +14,9 @@ Description:
 
 using UnityEngine;
 using System.Collections.Generic;
+# if UNITY_EDITOR
+using UnityEditor;
+# endif
 namespace jigaX{
 public class RandomSoundPlayer : Model {
 	public List<AudioClip> sounds;
@@ -33,7 +36,7 @@ public class RandomSoundPlayer : Model {
 			Debug.LogError( "Sound could not found!",this );
 			Debug.Break();
 			return;
-		}		
+		}
 	}
 	public override void ResetDefault(){
 		/* nothing */

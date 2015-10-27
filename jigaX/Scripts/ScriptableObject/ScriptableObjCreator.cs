@@ -24,7 +24,9 @@ public class ScriptableObjCreator : Editor {
             return;
         }
 
-        string path = AssetDatabase.GenerateUniqueAssetPath("Assets/RunGame/Resources/Models/new " + typeof(Type) + ".asset");
+        string path = AssetDatabase.GenerateUniqueAssetPath("Assets/new " + typeof(Type) + ".asset");
+
+        Debug.Log("create at " + path);
 
         AssetDatabase.CreateAsset( item, path );
         AssetDatabase.SaveAssets();
@@ -32,5 +34,13 @@ public class ScriptableObjCreator : Editor {
         EditorUtility.FocusProjectWindow();
         Selection.activeObject = item;
     }
+    
+    // RandomSound
+	[MenuItem("ScriptableObj/Create/RandomSoundPlayer")]
+	static void CreateRandomSoundAsset() {
+		ScriptableObjCreator.CreateAsset<jigaX.RandomSoundPlayer>();
+	}
+
+
 }
 # endif
