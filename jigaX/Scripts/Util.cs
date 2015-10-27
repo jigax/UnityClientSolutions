@@ -21,5 +21,5 @@ using System.Collections.Generic;
 namespace jigaX
 {
 	public delegate void SimpleEventHandler();
-	
+		
 }

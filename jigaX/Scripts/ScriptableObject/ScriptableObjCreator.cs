@@ -12,8 +12,9 @@ Description:
 
 -------------------------------------------------*/
 using UnityEngine;
-using UnityEditor;
 using RunGame;
+# if UNITY_EDITOR
+using UnityEditor;
 
 public class ScriptableObjCreator : Editor {
     public static void CreateAsset<Type>() where Type : ScriptableObject{
@@ -33,3 +34,4 @@ public class ScriptableObjCreator : Editor {
         Selection.activeObject = item;
     }
 }
+# endif

@@ -24,8 +24,6 @@ namespace jigaX{
 public interface IInitializable{
 	void ResetAsInitialization();
 }
-	
-	
 public abstract class Model : ScriptableObject {
 	public ModelEventHandler OnUpdateData;
 	public abstract void ResetDefault();
