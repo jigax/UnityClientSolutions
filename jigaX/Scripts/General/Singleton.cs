@@ -14,10 +14,8 @@ public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
 {
 	protected static readonly string[] findTags  =
 	{
-		"TIEEventReceivable",
-		"Canvas",
-		"Description",
-		"McTouchScreen"
+		"MainCanvas",
+		"GameController",
 	};
 
 	protected static T instance;
