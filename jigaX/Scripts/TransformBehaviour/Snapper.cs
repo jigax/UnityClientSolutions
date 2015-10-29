@@ -47,9 +47,18 @@ public class Snapper : MonoBehaviour {
 		this.snap = this.DoSnap();
 		StartCoroutine(this.snap);
 	}
+	public void ForceSnap(){
+		this.isSnapping = true;
+		if( this.snap != null ){
+			StopCoroutine( this.snap );
+		}
+		this.snap = this.DoSnap();
+		StartCoroutine(this.snap);
+	}
 	void Update(){
 		if( this.isHorming ){
 			// targetPositionを更新。
+			if ( this.target == null ) return;
 			this.target = this.target;
 		}
 	}
