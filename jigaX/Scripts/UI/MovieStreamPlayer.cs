@@ -43,6 +43,8 @@ public class MovieStreamPlayerInspector : Editor{
 
 // namespace jigaX{
 public class MovieStreamPlayer : MonoBehaviour {
+
+# if UNITY_EDITOR
 	const string oggMovieSampleURL = "http://techslides.com/demos/sample-videos/small.ogv";
 
 	[SerializeField]Renderer movieScreen;
@@ -110,6 +112,7 @@ public class MovieStreamPlayer : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 	}
+# endif
 }
 
 // } // namespace
