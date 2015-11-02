@@ -35,7 +35,7 @@ public class Snapper : MonoBehaviour {
 	public SimpleEventHandler OnFinishSnapReaction; 
 	
 	public Vector3 targetPosition;
-	
+	public float delayTime = 0f;
 	bool isSnapping = false;
 	IEnumerator snap;
 	public void Snap(){
@@ -66,6 +66,7 @@ public class Snapper : MonoBehaviour {
 	[SerializeField]bool isHorming = true;
 	[SerializeField]float defaultSnapSpeed = 1f;
 	IEnumerator DoSnap(){
+		yield return new WaitForSeconds(this.delayTime);
 		if( this.OnStartSnapReaction != null) this.OnStartSnapReaction();
 		float progress = 0f;
 		this.from = this.transform.position;
