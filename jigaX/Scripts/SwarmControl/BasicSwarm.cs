@@ -9,6 +9,13 @@ Basic.cs
 
 Date:
 Description:
+群衆の動きをコントロールするコンポーネント。
+このコンポーネントは子を生成してその子の振る舞いを定義するパラメータ群を保持する。
+生成する都度にパラメターを乱数を使って多少の個体差を持たせて生成する。
+Inspectorに解説を出現させるようにしてあるのでそちらから参照されたし。
+
+ただし、このコンポーネントはjigaX用のリポジトリに格納する関係上、abstractにしてあり、実際に使う際は継承して使用する。
+
 
 -------------------------------------------------*/
 
@@ -19,6 +26,22 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UniRx; using UnityEngine.UI;
+
+# if false
+usage{
+	// on custom inspector
+	[CustomEditor( typeof( Swarm ) )]
+	public class SwarmInspector : BasicInspector{
+		public override void OnInspectorGUI()
+		{
+			base.OnInspectorGUI();
+			var script = target as Swarm;
+		}
+	}	
+}
+# endif
+
+
 # if UNITY_EDITOR
 using UnityEditor;
 [CustomEditor( typeof( BasicSwarm ) )]
@@ -27,7 +50,7 @@ public class BasicInspector : Editor{
 	bool isVisiblePopupPrefabs = false;
 	public override void OnInspectorGUI()
 	{
-		DrawDefaultInspector();
+		//DrawDefaultInspector();
 		var script = target as BasicSwarm;
 		
 		using (new BackGroundScope( Color.green )){
@@ -335,7 +358,7 @@ public class BackGroundScope : GUI.Scope {
 # endif
 
 // namespace jigaX{
-public class BasicSwarm : MonoBehaviour 
+public abstract class BasicSwarm : MonoBehaviour 
 {
 
 	public Transform startPoint;
@@ -374,8 +397,14 @@ public class BasicSwarm : MonoBehaviour
 	// 出現位置に関して
 	public float popInterbalSec = 1f;
 	public float childRandPosRange = 1f;
+
+	protected virtual void OnAwake(){}
+	protected virtual void OnStart(){}
+	protected virtual void OnUpdate(){}
+
 	void Awake(){
 		this.children = new List<BasicSwarmChild>();
+		this.OnAwake();
 	}
 	// Use this for initialization
 	void Start () {
@@ -389,8 +418,9 @@ public class BasicSwarm : MonoBehaviour
 		});
 
 		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach( c => this.CreateChild( this.childRandPosRange ) );
+		
+		this.OnStart();
 	}
-	
 	// Update is called once per frame
 
 	void UpdateCenter(){
