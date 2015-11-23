@@ -55,10 +55,17 @@ public class BasicInspector : Editor{
 		
 		using (new BackGroundScope( Color.green )){
 			
-			EditorGUI.HelpBox( //GUILayoutUtility.GetRect(new GUIContent("some button"), GUIStyle.none, GUILayout.MinHeight(50f) ),
-				EditorGUILayout.GetControlRect(false),
-				"出現する子オブジェクトたちが `SetParent()` されるオブジェクトを指定します。\n出\n現\nす\nる\n子\nオ\nブ\nジ\nェ\nク\nトたちが `SetParent()` されるオブジェクトを指定します。				",
-				MessageType.Info
+			EditorGUILayout.HelpBox( //GUILayoutUtility.GetRect(new GUIContent("some button"), GUIStyle.none, GUILayout.MinHeight(50f) ),
+				"目標地点への引きの強さ。時間経過で順次出現させる場合は高い数値にすべし！",MessageType.Info
+			);
+			script.suctionPower = EditorGUILayout.Slider(
+				"Suction Power",
+				script.suctionPower,0f,20f
+			);
+			
+			
+			EditorGUILayout.HelpBox( //GUILayoutUtility.GetRect(new GUIContent("some button"), GUIStyle.none, GUILayout.MinHeight(50f) ),
+				"出現する子オブジェクトたちが `SetParent()` されるオブジェクトを指定します。",MessageType.Info
 			);
 			script.parent = EditorGUI.ObjectField(
 				EditorGUILayout.GetControlRect(),
@@ -68,10 +75,8 @@ public class BasicInspector : Editor{
 				true
 			) as Transform ;
 
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"出現場所を指定します",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"出現場所を指定します",MessageType.Info
 			);
 			script.startPoint = EditorGUI.ObjectField(
 				EditorGUILayout.GetControlRect(),
@@ -81,10 +86,8 @@ public class BasicInspector : Editor{
 				true
 			) as Transform ;
 			
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"ゴール地点を指定します",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"ゴール地点を指定します",MessageType.Info
 			);
 			script.goalPoint = EditorGUI.ObjectField(
 				EditorGUILayout.GetControlRect(),
@@ -94,10 +97,8 @@ public class BasicInspector : Editor{
 				true
 			) as Transform ;
 
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"群れの中心位置表示用のオブジェクトを指定します。なくても大丈夫！",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"群れの中心位置表示用のオブジェクトを指定します。なくても大丈夫！",MessageType.Info
 			);
 			script.centerPoint = EditorGUI.ObjectField(
 				EditorGUILayout.GetControlRect(),
@@ -107,20 +108,16 @@ public class BasicInspector : Editor{
 				true
 			) as Transform ;
 
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"最初に出現させるリストメンバーの数を指定します。",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"最初に出現させるリストメンバーの数を指定します。",MessageType.Info
 			);
 			script.popCountAtStart = EditorGUI.IntField(
 				EditorGUILayout.GetControlRect(),
 				"Pop Count at Start",
 				script.popCountAtStart
 			);
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"次のメンバーが出現するまでの時間を指定します",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"次のメンバーが出現するまでの時間を指定します",MessageType.Info
 			);
 			script.popInterbalSec = EditorGUI.FloatField(
 				EditorGUILayout.GetControlRect(),
@@ -192,10 +189,8 @@ public class BasicInspector : Editor{
 		
 		// soludiers param
 		using (new BackGroundScope( Color.blue )){
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"出現した子のデフォルトスピードを指定します。",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"出現した子のデフォルトスピードを指定します。",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 			script.defaultChildSpeed = EditorGUI.FloatField(
@@ -210,10 +205,8 @@ public class BasicInspector : Editor{
 			);
 			EditorGUILayout.EndHorizontal();
 
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"パーソナルスペースを指定し、子同士の間隔を指定します。",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"パーソナルスペースを指定し、子同士の間隔を指定します。",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 			script.personalSpaceRange = EditorGUI.FloatField(
@@ -229,17 +222,16 @@ public class BasicInspector : Editor{
 			EditorGUILayout.EndHorizontal();
 
 			// 乱れ値を指定
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"群れ全体の乱れ具合、ばらつき制御します。",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"群れ全体の乱れ具合、ばらつき制御します。",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 
+			var f = 0.00001f;
 			script.turbulence = EditorGUILayout.Slider(
 				"turbulence",
 				script.turbulence,
-				0f, 1f
+				f, ( 1f - f )
 			);
 
 			script.additionalTurbulence = EditorGUI.FloatField(
@@ -250,24 +242,37 @@ public class BasicInspector : Editor{
 			EditorGUILayout.EndHorizontal();
 
 			// direction type
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"DirectionTypeを指定",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"DirectionTypeを指定",MessageType.Info
 			);
 			script.directionType = (BasicSwarmChild.DirectionType)EditorGUILayout.EnumPopup(
 				"directionType",
 				script.directionType
 			);
-				// 
-				// typeof(BasicSwarmChild.DirectionType)
+			
+			// 旋回性能はDirectionTypeが1のときのみ。
+			GUI.enabled = ( script.directionType == BasicSwarmChild.DirectionType.Type1 );
+			EditorGUILayout.HelpBox(
+				"旋回性能を決定",MessageType.Info
+			);
+			EditorGUILayout.BeginHorizontal();
+			script.quickTurnValue = EditorGUILayout.FloatField(
+				"Quick Turn Value",
+				script.quickTurnValue
+			);
+			script.additionalQuickTurnValue = EditorGUI.FloatField(
+				EditorGUILayout.GetControlRect(),
+				"+",
+				script.additionalQuickTurnValue
+			);
 
+			GUI.enabled = true;
 
+			EditorGUILayout.EndHorizontal();
+			
 			// 消滅範囲
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"ゴールに近づいた際に消滅します。その際のゴールとの距離を指定します",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"ゴールに近づいた際に消滅します。その際のゴールとの距離を指定します",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 			script.destroyRange = EditorGUI.FloatField(
@@ -277,12 +282,20 @@ public class BasicInspector : Editor{
 			);
 			EditorGUILayout.EndHorizontal();
 
+			// 無視することで動く回数を減らせたり処理を軽減できたりするかな？など。
+			EditorGUILayout.HelpBox(
+				"距離を気にする際の前後数",MessageType.Info
+			);
+			script.childAroundCount = EditorGUI.IntField(
+				EditorGUILayout.GetControlRect(),
+				"bors's around count",
+				script.childAroundCount
+			);
+
 			// 無視回数
 			// 無視することで動く回数を減らせたり処理を軽減できたりするかな？など。
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"他人との距離から避ける際、避けないでいる回数を指定します。",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"他人との距離から避ける際、避けないでいる回数を指定します。",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 			script.ignoreCount = EditorGUI.IntField(
@@ -299,10 +312,8 @@ public class BasicInspector : Editor{
 			EditorGUILayout.EndHorizontal();
 
 			// 無視時間
-			EditorGUI.HelpBox(
-				EditorGUILayout.GetControlRect(false),
-				"上記の無視が発動した際に無視し続ける時間を指定します",
-				MessageType.Info
+			EditorGUILayout.HelpBox(
+				"上記の無視が発動した際に無視し続ける時間を指定します",MessageType.Info
 			);
 			EditorGUILayout.BeginHorizontal();
 			script.ignoreTime = EditorGUI.FloatField(
@@ -319,6 +330,9 @@ public class BasicInspector : Editor{
 			EditorGUILayout.EndHorizontal();
 
 			// 年功序列システム
+			EditorGUILayout.HelpBox(
+				"年功序列システム。自身より先に生成されたキャラとの距離しか気にしない。処理軽減用",MessageType.Info
+			);
 			// 自分より先にリストに入っている対象しか気にしない。
 			EditorGUILayout.BeginHorizontal();
 			GUILayout.Label("Is Seniority?");
@@ -332,11 +346,26 @@ public class BasicInspector : Editor{
 				script.reverseSeniorityRatio,0f,100f
 			);
 			EditorGUILayout.EndHorizontal();
+
+			EditorGUILayout.BeginHorizontal();
+			GUILayout.Label("スクリーンに入ってる時だけ間隔調整をする?");
+			script.onScreenOnly = EditorGUILayout.Toggle(
+				script.onScreenOnly
+			);
+			EditorGUILayout.EndHorizontal();
+
 			
+			// 全員にパラメータの適用しなおし
+			EditorGUILayout.HelpBox(
+				"出現済みの全ての子にパラメータを適用しなおします。\n逆にいえば、通常は出現時にパラメータが決定するということです。",MessageType.Info
+			);
+			if (GUILayout.Button("Re-Applay to all")){
+				script.ReApply();
+			}
 			
 			
 		}
-		// 全員にパラメータの適用しなおし
+		
 		
         if (GUI.changed)
             EditorUtility.SetDirty (target);
@@ -369,12 +398,13 @@ public abstract class BasicSwarm : MonoBehaviour
 	public float suctionPower = 1f;
 	public int popCountAtStart = 10;
 	public float defaultChildSpeed = 0.5f;
-	public float additionalChildSpeedRange = 0.5f;
+	public float additionalChildSpeedRange = 0f;
 	public float turbulence = 0.5f;
 	public float additionalTurbulence = 0f;
 	public float personalSpaceRange = 1f;
-	public float additionalPersonalSpaceRange = 0.5f;
+	public float additionalPersonalSpaceRange = 0f;
 	public float destroyRange = 1f;// 消滅に必要な目的からの距離
+	public int childAroundCount = 0; // 0だと全部
 	public int ignoreCount = 0;
 	public int additionalIgnoreCount = 0;
 	public float ignoreTime = 0f;
@@ -382,9 +412,20 @@ public abstract class BasicSwarm : MonoBehaviour
 	public bool seniority = false;// 年功序列システム
 	public float reverseSeniorityRatio = 0f;//年功序列システムの反対のやつが生まれる可能性
 	public BasicSwarmChild.DirectionType directionType;
-	
+	public float quickTurnValue = 10f;
+	public float additionalQuickTurnValue = 0f;
+	public bool onScreenOnly = false;
 	public List<BasicSwarmChild> children{
 		get; protected set;
+	}
+	public List<BasicSwarmChild> GetChildrenAroundChild( BasicSwarmChild _child, int _around ){
+		if( _around <= 0 ){ return this.children; }
+		int index = this.children.IndexOf( _child );
+		var start = Mathf.Max(0, index - _around );
+		var end = Mathf.Min( this.children.Count -1, index + _around );
+		var l = this.children.GetRange(start, end - start  );
+		Debug.Log( "index :" + index + "\tstart : " + start + "\tend:" + end + "\t/" + l.Count );
+		return l;
 	}
 	public Vector3 center{
 		get; protected set;
@@ -398,30 +439,33 @@ public abstract class BasicSwarm : MonoBehaviour
 	public float popInterbalSec = 1f;
 	public float childRandPosRange = 1f;
 
-	protected virtual void OnAwake(){}
-	protected virtual void OnStart(){}
-	protected virtual void OnUpdate(){}
 
 	void Awake(){
-		this.children = new List<BasicSwarmChild>();
 		this.OnAwake();
 	}
+	protected virtual void OnAwake(){
+		this.children = new List<BasicSwarmChild>();		
+	}
 	// Use this for initialization
-	void Start () {
+	void Start () {		
+		this.OnStart();
+	}
+	protected virtual void OnStart(){
+		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach( c => this.CreateChild<BasicSwarmChild>( this.childRandPosRange ) );		
 
 		Observable.Interval(System.TimeSpan.FromSeconds( this.popInterbalSec )).Subscribe ( x =>{
-			this.CreateChild( this.childRandPosRange );
+			this.CreateChild<BasicSwarmChild>( this.childRandPosRange );
 		});
 		Observable.EveryUpdate().Subscribe (_=> {
 			this.UpdateCenter();
 			this.UpdateAvarageVelocity();
 		});
-
-		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach( c => this.CreateChild( this.childRandPosRange ) );
-		
-		this.OnStart();
 	}
 	// Update is called once per frame
+	void Update(){
+		this.OnUpdate();
+	}
+	protected virtual void OnUpdate(){}
 
 	void UpdateCenter(){
 		this.center = Vector3.zero;
@@ -451,7 +495,8 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.averageVelocity /= this.children.Count;
 	}
 
-	public GameObject CreateChild( float _randomRange = 0f ){
+	public GameObject CreateChild<T>( float _randomRange = 0f ) where T : BasicSwarmChild
+	{
 		var prefab = this.GetPrefabFromListWithRandom();
 		var g = Instantiate (prefab);
 		g.transform.SetParent( this.parent );
@@ -461,40 +506,60 @@ public abstract class BasicSwarm : MonoBehaviour
 		var randPos = new Vector3( r(), 0f, r() );
 		g.transform.position = this.startPoint.position + randPos;
 		g.transform.localScale = new Vector3( 200f,200f,200f );
-		var child = g.AddComponent<BasicSwarmChild>();
+		var child = g.AddComponent<T>();
 
 		child.parent = this;
 
 		this.children.Add ( child );
-		Debug.Log ("children count " + this.children.Count ,this);
+		//Debug.Log ("children count " + this.children.Count ,this);
+
+		this.ApplyParams<T>( child );
+		return g;
+	}
+	void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
 
 		// 個性の付与
 		
 		// スピードの決定
 		var additional = UnityEngine.Random.Range(0f,this.additionalChildSpeedRange);
-		child.speed = this.defaultChildSpeed + additional;
+		_child.speed = this.defaultChildSpeed + additional;
 		
 		// パーソナルスペースの決定
 		additional = UnityEngine.Random.Range( 0f,this.additionalPersonalSpaceRange );
-		child.personalSpace = this.personalSpaceRange + additional;
+		_child.personalSpace = this.personalSpaceRange + additional;
 
 		// 人とぶつかることを厭わない
 		var additionalCount = UnityEngine.Random.Range(0,this.additionalIgnoreCount);
-		child.maxIgnoreRangeCount = this.ignoreCount + additionalCount;
+		_child.maxIgnoreRangeCount = this.ignoreCount + additionalCount;
 		
 		additional = UnityEngine.Random.Range(0f, this.additionalIgnoreTime );
-		child.ignoreTime = this.ignoreTime + additional; 
+		_child.ignoreTime = this.ignoreTime + additional;
 
 		// 年功序列.
 		// 指定割合で反転。
 		var b = this.reverseSeniorityRatio < UnityEngine.Random.Range(0f, 100f );
-		child.seniority = b ? this.seniority : !this.seniority;
+		_child.seniority = b ? this.seniority : !this.seniority;
 
 		additional = UnityEngine.Random.Range( 0f, this.additionalTurbulence );
-		child.turbulence = this.turbulence + additional;
-
-		return g;
+		_child.turbulence = this.turbulence + additional;
+		
+		// 旋回性能
+		additional = UnityEngine.Random.Range( 0f, this.additionalQuickTurnValue );
+		_child.quickTurnValue = this.quickTurnValue + additional;
+		
+		_child.onScreenOnly = this.onScreenOnly;
+		
+		_child.childAround = this.childAroundCount;
+		
 	}
+	
+	// 出現済みキャラクタ全員にアプライしなおす。
+	public virtual void ReApply(){
+		foreach( var c in this.children ){
+			this.ApplyParams( c ); // これ通るのか！
+		}
+	}
+	
 	GameObject GetPrefabFromListWithRandom( int count = 0 ){
 		if( count > 10 ){ // safety
 			Debug.LogError ("prefabs has many null reference.",this);

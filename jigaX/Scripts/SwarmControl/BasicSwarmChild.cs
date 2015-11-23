@@ -63,7 +63,7 @@ public class BasicSwarmChild : MonoBehaviour {
 	[SerializeField]List<BasicSwarmChild> m_bros;
 	List<BasicSwarmChild> bros{
 		get{
-			this.m_bros = new List<BasicSwarmChild>( this.parent.children );
+			this.m_bros = new List<BasicSwarmChild>( this.parent.GetChildrenAroundChild( this, this.childAround ) );
 			if( ! this.seniority ){ // 年功序列の場合は自分がリストにいたら以降を無視するので自身を抜いてはいけない。
 				this.m_bros.Remove (this);
 			}
@@ -73,17 +73,28 @@ public class BasicSwarmChild : MonoBehaviour {
 			this.m_bros = value;
 		}
 	}
+	public int childAround = 0;
 	public float turbulence = 0.5f;
 	public float personalSpace = 1f;
 	public float speed = 1f;
 	public float destroyRange = 3f;
 	public bool seniority = false;
 	
-	// 一定距離に他人が至ら避けるが、それを無視する回数を指定することで処理を軽減。
+	// 一定距離に他人が居たら避けるが、それを無視する回数を指定することで処理を軽減。
 	public int maxIgnoreRangeCount = 0;
 	int currentIgnoreRangeCount = 0;
 	public float ignoreTime = 1f; // 1度無視するとこの時間は距離を見ない。無視時間。
-	
+	float currentIgnoreTime = 0f;
+	public float quickTurnValue = 10f;
+	public bool onScreenOnly = false;
+	void OnBecameInvisible(){
+		if( this.onScreenOnly )
+			screenIgnore = true;
+	}
+	void OnBecameVisible(){
+		if( this.onScreenOnly )
+			screenIgnore = false;
+	}
 	void Awake(){
 		this.rigidbody.useGravity = false;
 	}
@@ -92,20 +103,47 @@ public class BasicSwarmChild : MonoBehaviour {
 	}
 	[SerializeField] Vector3 velocity___;
 	// Update is called once per frame
+	protected bool screenIgnore = false;
+	protected bool timeIgnoring = false;
 	void LateUpdate () {
-		this.velocity___ = this.rigidbody.velocity;
-		Vector3 dirToCenter = (this.parent.center - this.transform.position).normalized; // diff of center
-		Vector3 direction = ( this.rigidbody.velocity.normalized * this.turbulence + dirToCenter * ( 1 - this.turbulence ) ).normalized;
-		
-		direction *= Random.Range(20f, 30f);
-		
-		this.rigidbody.velocity = direction;
-
-		if( Vector3.Distance(this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
+		// ゴールとの距離確認
+		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
 			this.Disappear();
 			return;
 		}
+
+		// スクリーン外無視？
+		if( this.screenIgnore ) return;
 		
+		
+		this.velocity___ = this.rigidbody.velocity;
+		//Vector3 dirToCenter = (this.parent.center - this.transform.position).normalized; // diff of center
+		Vector3 dirToCenter = (this.parent.goalPosition - this.transform.position).normalized; // diff of center
+		Vector3 direction = ( this.rigidbody.velocity.normalized * this.turbulence + dirToCenter * ( 1 - this.turbulence ) ).normalized;
+		
+		this.rigidbody.velocity = direction * this.speed;
+
+		
+
+		// 無視中なら処理を飛ばす。
+		this.currentIgnoreTime += Time.deltaTime;
+		if( this.ignoreTime == 0f || this.currentIgnoreTime <= this.ignoreTime ){
+			// スルー
+		}
+		else if( this.currentIgnoreTime >= this.ignoreTime ){
+			this.timeIgnoring = false;
+			// 時間リセット
+			this.currentIgnoreTime -= this.ignoreTime;			
+		}
+		else if( ! this.timeIgnoring && this.currentIgnoreTime > 1f ){// 1秒で切り替える
+			this.timeIgnoring = true;
+			this.currentIgnoreTime -= 1f;
+		}
+		
+		if( this.timeIgnoring ){
+			return;
+		}
+
 		// take distance with other brothers.
 		foreach ( BasicSwarmChild bros in this.bros )
 		{
@@ -113,24 +151,37 @@ public class BasicSwarmChild : MonoBehaviour {
 			if( this.seniority && System.Object.ReferenceEquals( bros, this ) ){
 				break;
 			}
-			Vector3 diff = this.transform.position - bros.transform.position;
 			
-			if (diff.magnitude < Random.Range(this.personalSpace, this.personalSpace * 2 ))
+			// 一定距離以内であれば避ける
+			Vector3 diff = this.transform.position - bros.transform.position;
+			if (diff.magnitude < this.personalSpace )
 			{
+				// リスト上、いくらかを無視する。
+				this.currentIgnoreRangeCount ++;
+				if( this.maxIgnoreRangeCount != 0 && this.currentIgnoreRangeCount >= this.maxIgnoreRangeCount ){
+					this.currentIgnoreRangeCount = 0;
+					continue;
+				}
+
+				// 避ける処理
 				this.rigidbody.velocity = diff.normalized * this.rigidbody.velocity.magnitude;
 			}
 		}
 		
+		// 群れとして平均速度を意識するか？
 		// latest speed;
-		this.rigidbody.velocity = this.rigidbody.velocity * this.speed + this.parent.averageVelocity * (1f - this.turbulence); // 平均
+		this.rigidbody.velocity = this.rigidbody.velocity + 
+					this.parent.averageVelocity * (1f - this.turbulence); // 平均
 
 		// direction
+		
+		// TODO: 別コンポーネント（共通インターフェース）で分ける
 		switch(this.directionType){
 			case DirectionType.Type1:{
 				this.transform.rotation = Quaternion.Slerp(
 						this.transform.rotation,
 						Quaternion.LookRotation( this.rigidbody.velocity.normalized ),
-						Time.deltaTime * 10f
+						Time.deltaTime * this.quickTurnValue //10f
 						);
 				break;
 			}
@@ -142,7 +193,7 @@ public class BasicSwarmChild : MonoBehaviour {
 				this.transform.rotation = Quaternion.Slerp(
 					this.transform.rotation,
                  	Quaternion.LookRotation( this.parent.averageVelocity.normalized ),
-					Time.deltaTime * 3f
+					Time.deltaTime * this.quickTurnValue//3f
 					);
 				break;
 			}
