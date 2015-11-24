@@ -38,13 +38,22 @@ public class BasicSwarmChild : MonoBehaviour {
 	Rigidbody m_rigidbody;
 	public Rigidbody rigidbody{
 		get{
-			if ( m_rigidbody == null ) this.m_rigidbody = GetComponent<Rigidbody>();
-			if ( m_rigidbody == null ) this.m_rigidbody = this.gameObject.AddComponent<Rigidbody>();
+			if ( m_rigidbody == null ) {
+				this.m_rigidbody = GetComponent<Rigidbody>();
+				this.ApplyRigidbodySettings();
+			}
+			if ( m_rigidbody == null ) {
+				this.m_rigidbody = this.gameObject.AddComponent<Rigidbody>();
+				this.ApplyRigidbodySettings();
+			}
 			return this.m_rigidbody;
 		}
 		set{
 			this.m_rigidbody = value;
 		}
+	}
+	protected virtual void ApplyRigidbodySettings(){
+		if(this.rigidbody == null) return;
 	}
 	BasicSwarm m_parent;
 	public BasicSwarm parent{
@@ -61,9 +70,10 @@ public class BasicSwarmChild : MonoBehaviour {
 	}
 	public DirectionType directionType;
 	[SerializeField]List<BasicSwarmChild> m_bros;
+	System.Func<List<BasicSwarmChild>> GetBros;
 	List<BasicSwarmChild> bros{
 		get{
-			this.m_bros = new List<BasicSwarmChild>( this.parent.GetChildrenAroundChild( this, this.childAround ) );
+			this.m_bros = GetBros();
 			if( ! this.seniority ){ // 年功序列の場合は自分がリストにいたら以降を無視するので自身を抜いてはいけない。
 				this.m_bros.Remove (this);
 			}
@@ -73,6 +83,14 @@ public class BasicSwarmChild : MonoBehaviour {
 			this.m_bros = value;
 		}
 	}
+	// 親から受け取る自身に近い範囲の兄弟リスト数が十分にあるばああいは取らない。
+	protected virtual List<BasicSwarmChild> GetOtherChildren(){
+		if( this.m_bros == null || this.m_bros.Count >= ( this.childAround * 2 ) ){
+			return this.parent.GetChildrenAroundChild( this, this.childAround );
+		}
+		return this.m_bros;
+	}
+
 	public int childAround = 0;
 	public float turbulence = 0.5f;
 	public float personalSpace = 1f;
@@ -96,6 +114,7 @@ public class BasicSwarmChild : MonoBehaviour {
 			screenIgnore = false;
 	}
 	void Awake(){
+		this.GetBros = this.GetOtherChildren;
 		this.rigidbody.useGravity = false;
 	}
 	void Start () {
@@ -105,6 +124,21 @@ public class BasicSwarmChild : MonoBehaviour {
 	// Update is called once per frame
 	protected bool screenIgnore = false;
 	protected bool timeIgnoring = false;
+	protected virtual bool IsGroundedAndApply(){
+		RaycastHit hit;
+		if( Physics.Raycast(this.transform.position + (Vector3.up * 10f ),Vector3.down, out hit, 30f ) ){
+			var p = hit.point;
+			this.transform.position = p;
+			return true;
+		}
+		return false;
+	}
+	protected virtual void EscapeFromBarrier(){
+		
+	}
+	protected Vector3 GetGoalDirection(){
+		return (this.parent.goalPosition - this.transform.position).normalized;
+	}
 	void LateUpdate () {
 		// ゴールとの距離確認
 		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
@@ -112,18 +146,24 @@ public class BasicSwarmChild : MonoBehaviour {
 			return;
 		}
 
+		if( this.IsGroundedAndApply() ){
+			
+		}else{
+			this.EscapeFromBarrier();
+			return;
+		}
+
 		// スクリーン外無視？
 		if( this.screenIgnore ) return;
-		
-		
+		var v = this.rigidbody.velocity;
+		v.y = 0f;
+		this.rigidbody.velocity = v;
 		this.velocity___ = this.rigidbody.velocity;
-		//Vector3 dirToCenter = (this.parent.center - this.transform.position).normalized; // diff of center
-		Vector3 dirToCenter = (this.parent.goalPosition - this.transform.position).normalized; // diff of center
-		Vector3 direction = ( this.rigidbody.velocity.normalized * this.turbulence + dirToCenter * ( 1 - this.turbulence ) ).normalized;
+		//Vector3 dirGoal = (this.parent.center - this.transform.position).normalized; // diff of center
+		Vector3 dirGoal = this.GetGoalDirection(); // diff of center
+		Vector3 direction = ( this.rigidbody.velocity.normalized * this.turbulence + dirGoal * ( 1 - this.turbulence ) ).normalized;
 		
 		this.rigidbody.velocity = direction * this.speed;
-
-		
 
 		// 無視中なら処理を飛ばす。
 		this.currentIgnoreTime += Time.deltaTime;
@@ -144,9 +184,12 @@ public class BasicSwarmChild : MonoBehaviour {
 			return;
 		}
 
+		var l = this.parent.GetBarriers();
+
 		// take distance with other brothers.
 		foreach ( BasicSwarmChild bros in this.bros )
 		{
+			if( bros == null ) continue;
 			// 年功序列を採用するのであれば自身は後輩に気を使わないという理屈
 			if( this.seniority && System.Object.ReferenceEquals( bros, this ) ){
 				break;
@@ -167,6 +210,7 @@ public class BasicSwarmChild : MonoBehaviour {
 				this.rigidbody.velocity = diff.normalized * this.rigidbody.velocity.magnitude;
 			}
 		}
+		
 		
 		// 群れとして平均速度を意識するか？
 		// latest speed;

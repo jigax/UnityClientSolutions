@@ -354,6 +354,23 @@ public class BasicInspector : Editor{
 			);
 			EditorGUILayout.EndHorizontal();
 
+			// scale
+			EditorGUILayout.HelpBox(
+				"出現時のスケーリング",MessageType.Info
+			);
+			// 自分より先にリストに入っている対象しか気にしない。
+			EditorGUILayout.BeginHorizontal();
+			script.defaultScale = EditorGUILayout.Vector3Field(
+				"defaultScale",
+				script.defaultScale
+			);
+			EditorGUILayout.EndHorizontal();
+			EditorGUILayout.BeginHorizontal();
+			script.additionalScale = EditorGUILayout.Slider(
+				"追加するスケール係数",
+				script.additionalScale,0f,100f
+			);
+			EditorGUILayout.EndHorizontal();
 			
 			// 全員にパラメータの適用しなおし
 			EditorGUILayout.HelpBox(
@@ -415,6 +432,9 @@ public abstract class BasicSwarm : MonoBehaviour
 	public float quickTurnValue = 10f;
 	public float additionalQuickTurnValue = 0f;
 	public bool onScreenOnly = false;
+	public Vector3 defaultScale = Vector3.one;
+	public float additionalScale = 1f;
+	
 	public List<BasicSwarmChild> children{
 		get; protected set;
 	}
@@ -423,8 +443,8 @@ public abstract class BasicSwarm : MonoBehaviour
 		int index = this.children.IndexOf( _child );
 		var start = Mathf.Max(0, index - _around );
 		var end = Mathf.Min( this.children.Count -1, index + _around );
-		var l = this.children.GetRange(start, end - start  );
-		Debug.Log( "index :" + index + "\tstart : " + start + "\tend:" + end + "\t/" + l.Count );
+		var l = this.children.GetRange(start, end - start );
+		//Debug.Log( "index :" + index + "\tstart : " + start + "\tend:" + end + "\t/" + l.Count );
 		return l;
 	}
 	public Vector3 center{
@@ -451,16 +471,22 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.OnStart();
 	}
 	protected virtual void OnStart(){
-		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach( c => this.CreateChild<BasicSwarmChild>( this.childRandPosRange ) );		
+		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach ( c => this.CreateChild() );
 
 		Observable.Interval(System.TimeSpan.FromSeconds( this.popInterbalSec )).Subscribe ( x =>{
-			this.CreateChild<BasicSwarmChild>( this.childRandPosRange );
+			this.CreateChild();
 		});
+
 		Observable.EveryUpdate().Subscribe (_=> {
 			this.UpdateCenter();
 			this.UpdateAvarageVelocity();
 		});
 	}
+	// ここを上書きして別コンポーネントを貼り付けたりする。
+	protected virtual void CreateChild(){
+		this.CreateChild<BasicSwarmChild>( this.childRandPosRange );
+	}
+	
 	// Update is called once per frame
 	void Update(){
 		this.OnUpdate();
@@ -495,7 +521,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.averageVelocity /= this.children.Count;
 	}
 
-	public GameObject CreateChild<T>( float _randomRange = 0f ) where T : BasicSwarmChild
+	public virtual GameObject CreateChild<T>( float _randomRange = 0f ) where T : BasicSwarmChild
 	{
 		var prefab = this.GetPrefabFromListWithRandom();
 		var g = Instantiate (prefab);
@@ -505,7 +531,6 @@ public abstract class BasicSwarm : MonoBehaviour
 		};
 		var randPos = new Vector3( r(), 0f, r() );
 		g.transform.position = this.startPoint.position + randPos;
-		g.transform.localScale = new Vector3( 200f,200f,200f );
 		var child = g.AddComponent<T>();
 
 		child.parent = this;
@@ -515,10 +540,12 @@ public abstract class BasicSwarm : MonoBehaviour
 
 		this.ApplyParams<T>( child );
 		return g;
-	}
+	}	
 	void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
 
 		// 個性の付与
+		// サイズ
+		_child.gameObject.transform.localScale = this.defaultScale * Random.Range( 1f, this.additionalScale );
 		
 		// スピードの決定
 		var additional = UnityEngine.Random.Range(0f,this.additionalChildSpeedRange);
@@ -576,6 +603,28 @@ public abstract class BasicSwarm : MonoBehaviour
 		}
 		return prefab;
 	}
+
+	# region barriers
+	
+	BarriersManager m_barriersManager;
+	public BarriersManager barriersManager{
+		get{
+			if( this.m_barriersManager == null ) this.m_barriersManager = GetComponent<BarriersManager>();
+			return this.m_barriersManager;
+		}
+		set{
+			this.m_barriersManager = value;
+		}
+	}
+	public List<Barrier> GetBarriers(){
+		if( this.barriersManager == null ){
+			return new List<Barrier>();
+		}
+		return this.barriersManager.barriers;
+	}
+	
+	# endregion
+
 
 
 }
