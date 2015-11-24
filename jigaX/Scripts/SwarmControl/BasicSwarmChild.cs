@@ -160,9 +160,10 @@ public class BasicSwarmChild : MonoBehaviour {
 			return;
 		}
 
-		// navmeshのため処理しない仮
-		return; // navmeshの方が軽いんじゃ？！
 
+		// navmeshのため処理しない仮
+		this.IsGroundedAndApply();
+		return; // navmeshの方が軽いんじゃ？！
 
 		# if UNITY_EDITOR
 			Debug.DrawLine( this.transform.position, this.transform.position + this.rigidbody.velocity,Color.red );

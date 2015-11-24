@@ -358,7 +358,6 @@ public class BasicInspector : Editor{
 			EditorGUILayout.HelpBox(
 				"出現時のスケーリング",MessageType.Info
 			);
-			// 自分より先にリストに入っている対象しか気にしない。
 			EditorGUILayout.BeginHorizontal();
 			script.defaultScale = EditorGUILayout.Vector3Field(
 				"defaultScale",
@@ -434,6 +433,7 @@ public abstract class BasicSwarm : MonoBehaviour
 	public bool onScreenOnly = false;
 	public Vector3 defaultScale = Vector3.one;
 	public float additionalScale = 1f;
+	[RangeAttribute(1,100)]public int popUpCount = 1;
 	
 	public List<BasicSwarmChild> children{
 		get; protected set;
@@ -458,11 +458,11 @@ public abstract class BasicSwarm : MonoBehaviour
 	// 出現位置に関して
 	public float popInterbalSec = 1f;
 	# region ui button trigger
-	public void IncreaseInterbalSec(){ // UIで操作するボタンに対応させる
-		this.popInterbalSec += 0.001f;
+	public void IncreasePopCount(){ // UIで操作するボタンに対応させる
+		this.popUpCount ++;
 	}
-	public void DecreaseInterbalSec(){ // UIで操作するボタンに対応させる
-		this.popInterbalSec -= 0.001f;
+	public void DecreasePopCount(){ // UIで操作するボタンに対応させる
+		this.popUpCount --;
 	}
 	# endregion
 	public float childRandPosRange = 1f;
@@ -482,7 +482,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach ( c => this.CreateChild() );
 
 		Observable.Interval(System.TimeSpan.FromSeconds( this.popInterbalSec )).Subscribe ( x =>{
-			this.CreateChild();
+			Enumerable.Range(0,this.popUpCount).ToList().ForEach( y =>  this.CreateChild() );
 		});
 
 		Observable.EveryUpdate().Subscribe (_=> {
