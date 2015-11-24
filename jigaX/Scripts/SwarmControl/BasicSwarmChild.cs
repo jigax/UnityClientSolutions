@@ -57,7 +57,7 @@ public class BasicSwarmChild : MonoBehaviour {
 	}
 	BasicSwarm m_parent;
 	public BasicSwarm parent{
-		private get{
+		protected get{
 			return this.m_parent;
 		}
 		set{
@@ -118,7 +118,8 @@ public class BasicSwarmChild : MonoBehaviour {
 		this.rigidbody.useGravity = false;
 	}
 	void Start () {
-	
+		// nav meshでやるため着地は最初に！
+		this.IsGroundedAndApply();
 	}
 	[SerializeField] Vector3 velocity___;
 	// Update is called once per frame
@@ -133,6 +134,17 @@ public class BasicSwarmChild : MonoBehaviour {
 		}
 		return false;
 	}
+	protected virtual bool WillGroundNextTime(){
+		var c = Color.red;
+		bool isGround = false;
+		var pos = ( this.transform.position + this.rigidbody.velocity.normalized * this.personalSpace ) + (Vector3.up * 1f );
+		if( Physics.Raycast( pos , Vector3.down, 3f ) ){
+			c = Color.green;
+			isGround = true;
+		}
+		Debug.DrawLine( pos, ( this.transform.position + this.rigidbody.velocity.normalized * this.personalSpace ) ,c);
+		return isGround;
+	}
 	protected virtual void EscapeFromBarrier(){
 		
 	}
@@ -140,24 +152,42 @@ public class BasicSwarmChild : MonoBehaviour {
 		return (this.parent.goalPosition - this.transform.position).normalized;
 	}
 	void LateUpdate () {
+		
+		
 		// ゴールとの距離確認
 		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
 			this.Disappear();
 			return;
 		}
 
+		// navmeshのため処理しない仮
+		return; // navmeshの方が軽いんじゃ？！
+
+
+		# if UNITY_EDITOR
+			Debug.DrawLine( this.transform.position, this.transform.position + this.rigidbody.velocity,Color.red );
+		# endif
+
 		if( this.IsGroundedAndApply() ){
-			
+			if( ! this.WillGroundNextTime() ){
+				this.EscapeFromBarrier();
+				return;
+			}
 		}else{
-			this.EscapeFromBarrier();
+			GetComponent<Renderer>().material.color = Color.red;
+			this.Disappear();
 			return;
 		}
 
 		// スクリーン外無視？
 		if( this.screenIgnore ) return;
+		
+		// 接地
 		var v = this.rigidbody.velocity;
 		v.y = 0f;
 		this.rigidbody.velocity = v;
+		
+		
 		this.velocity___ = this.rigidbody.velocity;
 		//Vector3 dirGoal = (this.parent.center - this.transform.position).normalized; // diff of center
 		Vector3 dirGoal = this.GetGoalDirection(); // diff of center
@@ -247,6 +277,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		this.parent.children.Remove ( this );
 	}
 	public void Disappear(){
+		//Debug.LogError(this.gameObject.name, this);
 		Destroy ( this.gameObject );
 	}
 }

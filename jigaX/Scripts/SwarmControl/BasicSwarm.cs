@@ -457,6 +457,14 @@ public abstract class BasicSwarm : MonoBehaviour
 	}
 	// 出現位置に関して
 	public float popInterbalSec = 1f;
+	# region ui button trigger
+	public void IncreaseInterbalSec(){ // UIで操作するボタンに対応させる
+		this.popInterbalSec += 0.001f;
+	}
+	public void DecreaseInterbalSec(){ // UIで操作するボタンに対応させる
+		this.popInterbalSec -= 0.001f;
+	}
+	# endregion
 	public float childRandPosRange = 1f;
 
 
@@ -478,7 +486,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		});
 
 		Observable.EveryUpdate().Subscribe (_=> {
-			this.UpdateCenter();
+			//this.UpdateCenter();
 			this.UpdateAvarageVelocity();
 		});
 	}
