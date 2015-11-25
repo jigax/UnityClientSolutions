@@ -17,7 +17,7 @@ Description:
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-//using UniRx; using UnityEngine.UI;
+using UniRx; using UnityEngine.UI;
 # if UNITY_EDITOR
 using UnityEditor;
 [CustomEditor( typeof( BasicSwarmChild ) )]
@@ -116,11 +116,21 @@ public class BasicSwarmChild : MonoBehaviour {
 	void Awake(){
 		this.GetBros = this.GetOtherChildren;
 		this.rigidbody.useGravity = false;
+		this.OnAwake();
 	}
+	protected virtual void OnAwake(){}
+
 	void Start () {
 		// nav meshでやるため着地は最初に！
 		this.IsGroundedAndApply();
+		
+		Observable.EveryEndOfFrame().Where( _=> true ).Subscribe( _=> {
+			this.Move();
+		});
+		
+		this.OnStart();
 	}
+	protected virtual void OnStart(){}
 	[SerializeField] Vector3 velocity___;
 	// Update is called once per frame
 	protected bool screenIgnore = false;
@@ -151,19 +161,11 @@ public class BasicSwarmChild : MonoBehaviour {
 	protected Vector3 GetGoalDirection(){
 		return (this.parent.goalPosition - this.transform.position).normalized;
 	}
-	void LateUpdate () {
-		
-		
-		// ゴールとの距離確認
-		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
-			this.Disappear();
-			return;
+	
+	protected virtual void Move(){
+		if( this.CheckDestroyDistance() ){
+			return ;
 		}
-
-
-		// navmeshのため処理しない仮
-		this.IsGroundedAndApply();
-		return; // navmeshの方が軽いんじゃ？！
 
 		# if UNITY_EDITOR
 			Debug.DrawLine( this.transform.position, this.transform.position + this.rigidbody.velocity,Color.red );
@@ -182,13 +184,13 @@ public class BasicSwarmChild : MonoBehaviour {
 
 		// スクリーン外無視？
 		if( this.screenIgnore ) return;
-		
-		// 接地
+
+		// 上下移動をなくす
 		var v = this.rigidbody.velocity;
 		v.y = 0f;
 		this.rigidbody.velocity = v;
 		
-		
+		// デバッグ用の表示
 		this.velocity___ = this.rigidbody.velocity;
 		//Vector3 dirGoal = (this.parent.center - this.transform.position).normalized; // diff of center
 		Vector3 dirGoal = this.GetGoalDirection(); // diff of center
@@ -196,6 +198,26 @@ public class BasicSwarmChild : MonoBehaviour {
 		
 		this.rigidbody.velocity = direction * this.speed;
 
+		this.CheckIgnoreTime();
+		if( this.timeIgnoring ){
+			return;
+		}
+		this.TakeDistance();
+		this.SetVelocityAsSwarm();
+		this.SetDirection();		
+	}
+	
+	protected virtual bool CheckDestroyDistance(){
+		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
+			this.Disappear();
+			return true;
+		}
+		return false;
+	}
+	void LateUpdate () {
+		// ゴールとの距離確認
+	}
+	protected virtual void CheckIgnoreTime(){
 		// 無視中なら処理を飛ばす。
 		this.currentIgnoreTime += Time.deltaTime;
 		if( this.ignoreTime == 0f || this.currentIgnoreTime <= this.ignoreTime ){
@@ -209,18 +231,13 @@ public class BasicSwarmChild : MonoBehaviour {
 		else if( ! this.timeIgnoring && this.currentIgnoreTime > 1f ){// 1秒で切り替える
 			this.timeIgnoring = true;
 			this.currentIgnoreTime -= 1f;
-		}
+		}		
+	}
 		
-		if( this.timeIgnoring ){
-			return;
-		}
-
-		var l = this.parent.GetBarriers();
-
-		// take distance with other brothers.
+	protected virtual void TakeDistance(){
 		foreach ( BasicSwarmChild bros in this.bros )
 		{
-			if( bros == null ) continue;
+			if( this.bros == null ) continue;
 			// 年功序列を採用するのであれば自身は後輩に気を使わないという理屈
 			if( this.seniority && System.Object.ReferenceEquals( bros, this ) ){
 				break;
@@ -240,14 +257,18 @@ public class BasicSwarmChild : MonoBehaviour {
 				// 避ける処理
 				this.rigidbody.velocity = diff.normalized * this.rigidbody.velocity.magnitude;
 			}
-		}
-		
-		
-		// 群れとして平均速度を意識するか？
+		}		
+	}
+	
+	// 群れとして平均速度を意識するか？
+	protected virtual void SetVelocityAsSwarm(){
 		// latest speed;
 		this.rigidbody.velocity = this.rigidbody.velocity + 
-					this.parent.averageVelocity * (1f - this.turbulence); // 平均
-
+					this.parent.averageVelocity * (1f - this.turbulence); // 平均		
+	}
+	
+	
+	protected virtual void SetDirection(){
 		// direction
 		
 		// TODO: 別コンポーネント（共通インターフェース）で分ける
@@ -272,8 +293,9 @@ public class BasicSwarmChild : MonoBehaviour {
 					);
 				break;
 			}
-		}
+		}		
 	}
+	
 	void OnDestroy(){
 		this.parent.children.Remove ( this );
 	}

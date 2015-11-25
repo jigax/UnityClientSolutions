@@ -130,6 +130,11 @@ public class BasicInspector : Editor{
 				script.popInterbalSec
 			);
 			
+			script.childRandPosRange = EditorGUILayout.FloatField(
+				"childRandPosRange",
+				script.childRandPosRange
+			);
+			
 			
 			// prefabs
 			// drop area
@@ -439,12 +444,16 @@ public abstract class BasicSwarm : MonoBehaviour
 	public Vector3 defaultScale = Vector3.one;
 	public float additionalScale = 1f;
 	[RangeAttribute(1,100)]public int popUpCount = 1;
-	
+	public float childRandPosRange = 1f;
+
 	public List<BasicSwarmChild> children{
 		get; protected set;
 	}
 	public List<BasicSwarmChild> GetChildrenAroundChild( BasicSwarmChild _child, int _around ){
-		if( _around <= 0 ){ return this.children; }
+		if( _around <= 0 ){
+			Debug.Log(_around,_child); 
+			return this.children;
+		}
 		int index = this.children.IndexOf( _child );
 		var start = Mathf.Max(0, index - _around );
 		var end = Mathf.Min( this.children.Count -1, index + _around );
@@ -470,7 +479,6 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.popUpCount --;
 	}
 	# endregion
-	public float childRandPosRange = 1f;
 
 
 	void Awake(){
@@ -553,10 +561,10 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.children.Add ( child );
 		//Debug.Log ("children count " + this.children.Count ,this);
 
-		this.ApplyParams<T>( child );
+		this.ApplyParams( child );
 		return g;
 	}	
-	protected void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
+	protected virtual void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
 
 		// 個性の付与
 		// サイズ
@@ -576,6 +584,9 @@ public abstract class BasicSwarm : MonoBehaviour
 		
 		additional = UnityEngine.Random.Range(0f, this.additionalIgnoreTime );
 		_child.ignoreTime = this.ignoreTime + additional;
+
+		// 消滅距離
+		_child.destroyRange = this.destroyRange;
 
 		// 年功序列.
 		// 指定割合で反転。
