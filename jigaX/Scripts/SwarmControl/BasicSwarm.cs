@@ -53,6 +53,11 @@ public class BasicInspector : Editor{
 		//DrawDefaultInspector();
 		var script = target as BasicSwarm;
 		
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.Label("Create child");
+		script.isCreating = EditorGUILayout.Toggle(script.isCreating);
+		EditorGUILayout.EndHorizontal();
+		
 		using (new BackGroundScope( Color.green )){
 			
 			EditorGUILayout.HelpBox( //GUILayoutUtility.GetRect(new GUIContent("some button"), GUIStyle.none, GUILayout.MinHeight(50f) ),
@@ -478,11 +483,12 @@ public abstract class BasicSwarm : MonoBehaviour
 	void Start () {		
 		this.OnStart();
 	}
+	public bool isCreating = true;
 	protected virtual void OnStart(){
 		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach ( c => this.CreateChild() );
 
 		Observable.Interval(System.TimeSpan.FromSeconds( this.popInterbalSec )).Subscribe ( x =>{
-			Enumerable.Range(0,this.popUpCount).ToList().ForEach( y =>  this.CreateChild() );
+				Enumerable.Range(0,this.popUpCount).ToList().ForEach( y =>  this.CreateChild() );
 		});
 
 		Observable.EveryUpdate().Subscribe (_=> {
@@ -492,6 +498,7 @@ public abstract class BasicSwarm : MonoBehaviour
 	}
 	// ここを上書きして別コンポーネントを貼り付けたりする。
 	protected virtual void CreateChild(){
+		if( ! this.isCreating ) return;
 		this.CreateChild<BasicSwarmChild>( this.childRandPosRange );
 	}
 	
@@ -517,7 +524,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.centerPoint.position = center;
 	}
 	public Vector3 averageVelocity{get;protected set;}
-	void UpdateAvarageVelocity(){
+	protected void UpdateAvarageVelocity(){
 		if( this.children.Count <= 0 ) return;
 		this.averageVelocity = Vector3.zero;
 		
@@ -549,7 +556,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.ApplyParams<T>( child );
 		return g;
 	}	
-	void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
+	protected void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
 
 		// 個性の付与
 		// サイズ
