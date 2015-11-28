@@ -63,6 +63,7 @@ public class Snapper : MonoBehaviour {
 		}
 	}
 	Vector3 from;
+	public bool useSlerp = false;
 	[SerializeField]bool isHorming = true;
 	[SerializeField]float defaultSnapSpeed = 1f;
 	IEnumerator DoSnap(){
@@ -72,7 +73,11 @@ public class Snapper : MonoBehaviour {
 		this.from = this.transform.position;
 		var snapSpeed = this.defaultSnapSpeed;
 		while( progress < 1f && snapSpeed > 0f ){
-			this.transform.position = Vector3.Lerp( this.from, targetPosition, progress );
+			if( this.useSlerp ){
+				this.transform.position = Vector3.Slerp( this.from, targetPosition, progress );
+			}else{
+				this.transform.position = Vector3.Lerp( this.from, targetPosition, progress );
+			}
 			// 徐々に早く
 			snapSpeed += snapSpeed * 0.1f;
 			progress += Time.deltaTime * snapSpeed;
