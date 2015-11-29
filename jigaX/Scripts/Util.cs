@@ -55,10 +55,10 @@ public abstract class UIActivableButtonTrigger : MonoBehaviour, IActivableButton
 	public bool active{
 		set{
 			if( value ){
-				this.image.color = Color.white;
+				this.image.color = UnityEngine.Color.white;
 				this.button.interactable = true;
 			}else{
-				this.image.color = new Color( 1f,1f,1f, 0.1f );
+				this.image.color = new UnityEngine.Color( 1f,1f,1f, 0.1f );
 				this.button.interactable = false;
 			}
 		}
@@ -66,9 +66,19 @@ public abstract class UIActivableButtonTrigger : MonoBehaviour, IActivableButton
 
 
 } 
-
-
 # endregion
+
+# region extention methods
+public static class Color{
+	public static UnityEngine.Color GetRandomColor(){
+		var r = Random.Range(0f, 1f);
+		var g = Random.Range(0f, 1f);
+		var b = Random.Range(0f, 1f);
+		return new UnityEngine.Color( r,g,b, 1f );
+	}
+}
+# endregion
+
 }
 
 
