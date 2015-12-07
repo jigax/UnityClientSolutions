@@ -66,6 +66,7 @@ public class Snapper : MonoBehaviour {
 	public bool useSlerp = false;
 	[SerializeField]bool isHorming = true;
 	[SerializeField]float defaultSnapSpeed = 1f;
+	public bool autoDestroyOnFinish = false;
 	IEnumerator DoSnap(){
 		yield return new WaitForSeconds(this.delayTime);
 		if( this.OnStartSnapReaction != null) this.OnStartSnapReaction();
@@ -87,7 +88,7 @@ public class Snapper : MonoBehaviour {
 		this.transform.position = this.targetPosition;
 		this.isSnapping = false;
 		if( this.OnFinishSnapReaction != null )this.OnFinishSnapReaction();
-		
+		if( this.autoDestroyOnFinish ) Destroy(this.gameObject);
 	}
 	
 }
