@@ -65,7 +65,7 @@ public class Snapper : MonoBehaviour {
 	protected Vector3 from;
 	public bool useSlerp = false;
 	public bool isHorming = true;
-	[SerializeField]float defaultSnapSpeed = 1f;
+	public float defaultSnapSpeed = 1f;
 	public bool autoDestroyOnFinish = false;
 	IEnumerator DoSnap(){
 		yield return new WaitForSeconds(this.delayTime);
