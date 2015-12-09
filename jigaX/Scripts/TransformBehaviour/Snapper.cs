@@ -62,9 +62,9 @@ public class Snapper : MonoBehaviour {
 			this.target = this.target;
 		}
 	}
-	Vector3 from;
+	protected Vector3 from;
 	public bool useSlerp = false;
-	[SerializeField]bool isHorming = true;
+	public bool isHorming = true;
 	[SerializeField]float defaultSnapSpeed = 1f;
 	public bool autoDestroyOnFinish = false;
 	IEnumerator DoSnap(){
@@ -79,6 +79,7 @@ public class Snapper : MonoBehaviour {
 			}else{
 				this.transform.position = Vector3.Lerp( this.from, targetPosition, progress );
 			}
+			if( this.OnUpdateSnap != null ) this.OnUpdateSnap( progress );
 			// 徐々に早く
 			snapSpeed += snapSpeed * 0.1f;
 			progress += Time.deltaTime * snapSpeed;
@@ -91,5 +92,7 @@ public class Snapper : MonoBehaviour {
 		if( this.autoDestroyOnFinish ) Destroy(this.gameObject);
 	}
 	
+	public delegate void EventHandler( float _progress );
+	public EventHandler OnUpdateSnap;
 }
 }
