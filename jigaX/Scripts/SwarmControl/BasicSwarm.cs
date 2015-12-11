@@ -91,6 +91,17 @@ public class BasicInspector : Editor{
 				true
 			) as Transform ;
 			
+			EditorGUILayout.HelpBox("経路を指定します",MessageType.Info);
+			for( var i = 0; i < script.waypoints.Count; i++ ){
+				script.waypoints[i] = EditorGUI.ObjectField(
+					EditorGUILayout.GetControlRect(),
+					"Way Point" + i,
+					script.waypoints[i],
+					typeof(Transform),
+					true
+				) as Transform ;				
+			}
+			
 			EditorGUILayout.HelpBox(
 				"ゴール地点を指定します",MessageType.Info
 			);
@@ -449,6 +460,10 @@ public abstract class BasicSwarm : MonoBehaviour
 	public List<BasicSwarmChild> children{
 		get; protected set;
 	}
+	
+	public float waypointNearlyRange = 1f; // この距離以内に到達したら到着したとみなす距離
+	public List<Transform> waypoints = new List<Transform>();
+	
 	public List<BasicSwarmChild> GetChildrenAroundChild( BasicSwarmChild _child, int _around ){
 		if( _around <= 0 ){
 			Debug.Log(_around,_child); 

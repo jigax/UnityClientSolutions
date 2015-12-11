@@ -105,6 +105,7 @@ public class BasicSwarmChild : MonoBehaviour {
 	float currentIgnoreTime = 0f;
 	public float quickTurnValue = 10f;
 	public bool onScreenOnly = false;
+	public float waypointNealyRange;
 	void OnBecameInvisible(){
 		if( this.onScreenOnly )
 			screenIgnore = true;
@@ -124,11 +125,14 @@ public class BasicSwarmChild : MonoBehaviour {
 		// nav meshでやるため着地は最初に！
 		this.IsGroundedAndApply();
 		
-		Observable.EveryEndOfFrame().Where( _=> true ).Subscribe( _=> {
-			this.Move();
-		});
+		// Observable.EveryEndOfFrame().Where( _=> true ).Subscribe( _=> {
+			
+		// });
 		
 		this.OnStart();
+	}
+	void Update(){
+		this.Move();
 	}
 	protected virtual void OnStart(){}
 	[SerializeField] Vector3 velocity___;
@@ -164,7 +168,7 @@ public class BasicSwarmChild : MonoBehaviour {
 	
 	protected virtual void Move(){
 		if( this.CheckDestroyDistance() ){
-			return ;
+			return;
 		}
 
 		# if UNITY_EDITOR
@@ -233,18 +237,22 @@ public class BasicSwarmChild : MonoBehaviour {
 			this.currentIgnoreTime -= 1f;
 		}		
 	}
-		
+	void RemoveNullBros(){
+		for(int i = this.bros.Count -1; i >= 0; i--){
+				
+		}
+	}
 	protected virtual void TakeDistance(){
-		foreach ( BasicSwarmChild bros in this.bros )
+		foreach ( BasicSwarmChild bro in this.bros )
 		{
-			if( this.bros == null ) continue;
+			if( bro == null ) continue;
 			// 年功序列を採用するのであれば自身は後輩に気を使わないという理屈
-			if( this.seniority && System.Object.ReferenceEquals( bros, this ) ){
+			if( this.seniority && System.Object.ReferenceEquals( bro, this ) ){
 				break;
 			}
 			
 			// 一定距離以内であれば避ける
-			Vector3 diff = this.transform.position - bros.transform.position;
+			Vector3 diff = this.transform.position - bro.transform.position;
 			if (diff.magnitude < this.personalSpace )
 			{
 				// リスト上、いくらかを無視する。
