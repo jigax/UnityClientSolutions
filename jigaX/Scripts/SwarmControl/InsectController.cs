@@ -57,8 +57,11 @@ public class InsectController : MonoBehaviour {
 	public float rayHeight;
 	void TouchWithRan( float range, int count = 0 ){
 		var c = count / 2;
-		this.rightInfo.list[c] = this.TouchWithOneSide( range ,this.angle * c ).collider != null;
-		this.leftInfo.list[c] = this.TouchWithOneSide( range ,this.angle * - c ).collider != null;
+		if( this.rightInfo.list.Count > c )
+			this.rightInfo.list[c] = this.TouchWithOneSide( range ,this.angle * c ).collider != null;
+
+		if( this.leftInfo.list.Count > c )
+			this.leftInfo.list[c] = this.TouchWithOneSide( range ,this.angle * - c ).collider != null;
 	}
 	RaycastHit TouchWithOneSide( float range,float _angle ){
 		var origin = this.transform.position + new Vector3(0f,this.rayHeight,0f);

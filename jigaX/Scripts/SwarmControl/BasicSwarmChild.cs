@@ -142,7 +142,9 @@ public class BasicSwarmChild : MonoBehaviour {
 	protected virtual bool IsGroundedAndApply(){
 		RaycastHit hit;
 		if( Physics.Raycast(this.transform.position + (Vector3.up * 10f ),Vector3.down, out hit, 30f ) ){
-			var p = hit.point;
+			var p = this.transform.position;
+			p.y = hit.point.y;
+			
 			this.transform.position = p;
 			return true;
 		}

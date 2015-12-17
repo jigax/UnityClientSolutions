@@ -135,10 +135,10 @@ public class BasicInspector : Editor{
 			EditorGUILayout.HelpBox(
 				"次のメンバーが出現するまでの時間を指定します",MessageType.Info
 			);
-			script.popInterbalSec = EditorGUI.FloatField(
+			script.popIntervalSec = EditorGUI.FloatField(
 				EditorGUILayout.GetControlRect(),
 				"Pop Interval Sec",
-				script.popInterbalSec
+				script.popIntervalSec
 			);
 			
 			script.childRandPosRange = EditorGUILayout.FloatField(
@@ -181,7 +181,7 @@ public class BasicInspector : Editor{
 			if( GUILayout.Button("メンバーを表示 / 非表示") ){
 				isVisiblePopupPrefabs = ! isVisiblePopupPrefabs;
 			}
-			if( isVisiblePopupPrefabs ){
+			if( isVisiblePopupPrefabs && script.prefabs != null ){
 							
 				GUILayout.BeginHorizontal();
 				if( GUILayout.Button("Add") ){
@@ -485,7 +485,7 @@ public abstract class BasicSwarm : MonoBehaviour
 		}
 	}
 	// 出現位置に関して
-	public float popInterbalSec = 1f;
+	public float popIntervalSec = 1f;
 	# region ui button trigger
 	public void IncreasePopCount(){ // UIで操作するボタンに対応させる
 		this.popUpCount ++;
@@ -509,8 +509,9 @@ public abstract class BasicSwarm : MonoBehaviour
 	public bool isCreating = true;
 	protected virtual void OnStart(){
 		Enumerable.Range(0,this.popCountAtStart).ToList().ForEach ( c => this.CreateChild() );
-
-		Observable.Interval(System.TimeSpan.FromSeconds( this.popInterbalSec )).Subscribe ( x =>{
+		
+		if( this.popIntervalSec > 0 )
+		Observable.Interval(System.TimeSpan.FromSeconds( this.popIntervalSec )).Subscribe ( x =>{
 				Enumerable.Range(0,this.popUpCount).ToList().ForEach( y =>  this.CreateChild() );
 		});
 
