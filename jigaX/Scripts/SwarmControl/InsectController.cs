@@ -78,7 +78,7 @@ public class InsectController : MonoBehaviour {
 		this.rightInfo = new TouchInfo( this.count );
 		
 		// 触覚を動かす
-		var touchCheck = Observable.Timer( System.TimeSpan.FromSeconds(1f) ).Subscribe(_=>{
+		var touchCheck = Observable.Interval( System.TimeSpan.FromSeconds(1f) ).Subscribe(_=>{
 			for( var i = 1; i < this.count ; i ++ ){
 				this.TouchWithRan( this.longRangeTouch, i );
 				this.TouchWithRan( this.shortRangeTouch, i );
