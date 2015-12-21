@@ -566,10 +566,10 @@ public abstract class BasicSwarm : MonoBehaviour
 	// 出現位置に関して
 	# region ui button trigger
 	public void IncreasePopCount(){ // UIで操作するボタンに対応させる
-		this.popUpCount ++;
+		//this.popUpCount ++;
 	}
 	public void DecreasePopCount(){ // UIで操作するボタンに対応させる
-		this.popUpCount --;
+		//this.popUpCount --;
 	}
 	# endregion
 	void Awake(){
@@ -736,6 +736,8 @@ public abstract class BasicSwarm : MonoBehaviour
 	public List<Transform> goalinPerson;
 	public Transform groupTarget;
 	Transform RenewGroupGoal( Transform _oldGoal, Transform _child ){
+		if( ! System.Object.ReferenceEquals( this.groupTarget, _oldGoal ) ) return this.groupTarget;
+		
 		this.goalinPerson.Add( _child );
 
 		if( this.isGoalInCountMax ){
