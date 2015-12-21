@@ -69,13 +69,12 @@ public class BasicSwarmChild : MonoBehaviour {
 		Type1,Type2,Type3,
 	}
 	public DirectionType directionType;
-	[SerializeField]List<BasicSwarmChild> m_bros;
-	System.Func<List<BasicSwarmChild>> GetBros;
-	List<BasicSwarmChild> bros{
+	[SerializeField]List<Transform> m_bros;
+	System.Func<List<Transform>> GetBros;
+	protected List<Transform> bros{
 		get{
-			this.m_bros = GetBros();
-			if( ! this.seniority ){ // 年功序列の場合は自分がリストにいたら以降を無視するので自身を抜いてはいけない。
-				this.m_bros.Remove (this);
+			if( this.GetBros != null ){
+				this.m_bros = GetBros();
 			}
 			return this.m_bros;
 		}
@@ -84,14 +83,14 @@ public class BasicSwarmChild : MonoBehaviour {
 		}
 	}
 	// 親から受け取る自身に近い範囲の兄弟リスト数が十分にあるばああいは取らない。
-	protected virtual List<BasicSwarmChild> GetOtherChildren(){
-		if( this.m_bros == null || this.m_bros.Count >= ( this.childAround * 2 ) ){
-			return this.parent.GetChildrenAroundChild( this, this.childAround );
+	protected virtual List<Transform> GetOtherChildren(){
+		if( this.m_bros == null || this.m_bros.Count <= ( this.childAround * 2 ) ){
+			this.m_bros = this.parent.GetChildrenAroundChild( this.transform, this.childAround );
 		}
 		return this.m_bros;
 	}
 
-	public int childAround = 0;
+	public int childAround = 10;
 	public float turbulence = 0.5f;
 	public float personalSpace = 1f;
 	public float speed = 1f;
@@ -106,9 +105,20 @@ public class BasicSwarmChild : MonoBehaviour {
 	public float quickTurnValue = 10f;
 	public bool onScreenOnly = false;
 	public float waypointNealyRange;
-	public Transform currentGoal;
+	Transform m_currentGoal;
+	public Transform currentGoal{
+		get{
+			if(this.isGroup)
+				return this.parent.groupTarget;
+			return this.m_currentGoal;
+		}
+		set{
+			this.m_currentGoal = value;
+		}
+	}
 	public System.Action OnPopup;
-	public System.Func<Transform,Transform> OnGoal;
+	public System.Func<Transform,Transform,Transform> OnGoal;
+	public bool isGroup = false;
 	void OnBecameInvisible(){
 		if( this.onScreenOnly )
 			screenIgnore = true;
@@ -131,17 +141,21 @@ public class BasicSwarmChild : MonoBehaviour {
 	}
 	void LateUpdate(){
 		this.Move();
+		this.BackForSwarm();
 	}
+	// 広がり過ぎないようにするための処置
+	protected virtual void BackForSwarm(){}
 	protected virtual void OnStart(){}
-	[SerializeField] Vector3 velocity___;
+	[SerializeField]protected Vector3 velocity___;
+	[SerializeField]protected float magnitude___;
 	// Update is called once per frame
 	protected bool screenIgnore = false;
-	protected bool timeIgnoring = false;
+	[SerializeField]protected bool isTimeIgnoring = false;
 	
 	// 接地チェック
 	protected virtual bool IsGroundedAndApply(){
 		RaycastHit hit;
-		if( Physics.Raycast(this.transform.position + (Vector3.up * 10f ),Vector3.down, out hit, 30f ) ){
+		if( Physics.Raycast(this.transform.position + (Vector3.up * 50f ), Vector3.down, out hit, 30f ) ){
 			var p = this.transform.position;
 			p.y = hit.point.y;
 			
@@ -153,19 +167,21 @@ public class BasicSwarmChild : MonoBehaviour {
 	protected virtual bool WillGroundNextTime(){
 		var c = Color.red;
 		bool isGround = false;
-		var pos = ( this.transform.position + this.rigidbody.velocity.normalized * this.personalSpace ) + (Vector3.up * 1f );
+		var pos = ( this.transform.position + this.rigidbody.velocity ) + (Vector3.up * 1f );
 		if( Physics.Raycast( pos , Vector3.down, 3f ) ){
 			c = Color.green;
 			isGround = true;
 		}
-		Debug.DrawLine( pos, ( this.transform.position + this.rigidbody.velocity.normalized * this.personalSpace ) ,c);
+		# if UNITY_EDITOR
+		var endpoint = pos;
+		endpoint.y = - 10f;
+		Debug.DrawLine( pos, endpoint, c);
+		# endif
 		return isGround;
 	}
-	protected virtual void EscapeFromBarrier(){
-		
-	}
+	protected virtual void EscapeFromBarrier(){}
 	protected Vector3 GetGoalDirection(){
-		return (this.currentGoal.position - this.transform.position).normalized;
+		return ( this.currentGoal.position - this.transform.position).normalized;
 	}
 	
 	protected virtual void Move(){
@@ -178,14 +194,13 @@ public class BasicSwarmChild : MonoBehaviour {
 		# endif
 
 		if( this.IsGroundedAndApply() ){
+			this.SetRenderersColor( Color.white );
 			if( ! this.WillGroundNextTime() ){
 				this.EscapeFromBarrier();
 				return;
 			}
 		}else{
-			GetComponent<Renderer>().material.color = Color.red;
-			this.Disappear();
-			return;
+			this.SetRenderersColor( Color.red );
 		}
 
 		// スクリーン外無視？
@@ -195,9 +210,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		var v = this.rigidbody.velocity;
 		v.y = 0f;
 		this.rigidbody.velocity = v;
-		
-		// デバッグ用の表示
-		this.velocity___ = this.rigidbody.velocity;
+
 		//Vector3 dirGoal = (this.parent.center - this.transform.position).normalized; // diff of center
 		Vector3 dirGoal = this.GetGoalDirection(); // diff of center
 		Vector3 direction = ( this.rigidbody.velocity.normalized * this.turbulence + dirGoal * ( 1 - this.turbulence ) ).normalized;
@@ -205,72 +218,116 @@ public class BasicSwarmChild : MonoBehaviour {
 		this.rigidbody.velocity = direction * this.speed;
 
 		this.CheckIgnoreTime();
-		if( this.timeIgnoring ){
+		if( this.isTimeIgnoring ){
 			return;
 		}
-		this.TakeDistance();
-		this.SetVelocityAsSwarm();
-		this.SetDirection();		
+		// 群れから外れてないかをチェック。外れていた場合はセンターへの移動を優先する		
+		if( ! this.Gathered() ){
+			this.TakeDistance();
+			this.SetVelocityAsSwarm();
+			this.SetDirection();
+		}
+
+		// デバッグ用の表示
+		this.velocity___ = this.rigidbody.velocity;
+		this.magnitude___ = this.rigidbody.velocity.magnitude;
 	}
+	// 集合させられた場合はtrueを返す
+	protected virtual bool Gathered(){ return false; }
+	
 	protected virtual bool CheckDestroyDistance(){
+		if( this.currentGoal == null ){
+			this.Disappear();
+			return true;
+		}
 		if( Vector3.Distance( this.currentGoal.position, this.transform.position ) < this.destroyRange ){
 			
-			this.currentGoal = this.OnGoal( this.currentGoal );
+			this.currentGoal = this.OnGoal( this.currentGoal, this.transform );
 			
 			if( this.currentGoal == null ){
-				Debug.LogError( "Disape",this );
 				this.Disappear();
 				return true;
 			}
-			
-
 		}
 		return false;
 	}
+	// 指定された無視時間分だけ処理をしない。
+	// 
 	protected virtual void CheckIgnoreTime(){
 		// 無視中なら処理を飛ばす。
 		this.currentIgnoreTime += Time.deltaTime;
-		if( this.ignoreTime == 0f || this.currentIgnoreTime <= this.ignoreTime ){
+		if( this.ignoreTime <= 0f ){ // 無視しない設定
+			this.isTimeIgnoring = false;
+			return;
+		}
+		else if( this.currentIgnoreTime <= this.ignoreTime ){
 			// スルー
 		}
 		else if( this.currentIgnoreTime >= this.ignoreTime ){
-			this.timeIgnoring = false;
+			this.isTimeIgnoring = false;
 			// 時間リセット
-			this.currentIgnoreTime -= this.ignoreTime;			
+			this.currentIgnoreTime -= this.ignoreTime;
 		}
-		else if( ! this.timeIgnoring && this.currentIgnoreTime > 1f ){// 1秒で切り替える
-			this.timeIgnoring = true;
+		else if( (! this.isTimeIgnoring) && this.currentIgnoreTime > 1f ){// 1秒で切り替える
+			this.isTimeIgnoring = true;
 			this.currentIgnoreTime -= 1f;
 		}
 	}
 	void RemoveNullBros(){
 		for(int i = this.bros.Count -1; i >= 0; i--){
-				
+			
+		}
+	}
+	
+	[System.Diagnostics.Conditional("UNITY_EDITOR")]
+	public void SetRenderersColor( Color _color ){
+		var renderers = GetComponentsInChildren<Renderer>();
+		foreach( var r in renderers ){
+			r.material.color = Color.white;
 		}
 	}
 	protected virtual void TakeDistance(){
-		foreach ( BasicSwarmChild bro in this.bros )
+		Vector3 diffTotal = Vector3.zero;
+		int diffCount = 0;
+		foreach ( Transform bro in this.bros )
 		{
-			if( bro == null ) continue;
+			if( bro == null ){
+				continue;
+			}
+
 			// 年功序列を採用するのであれば自身は後輩に気を使わないという理屈
-			if( this.seniority && System.Object.ReferenceEquals( bro, this ) ){
+			if( this.seniority && System.Object.ReferenceEquals( bro, this.transform ) ){
 				break;
+			}
+			if( System.Object.ReferenceEquals( bro, this.transform ) ){
+				continue;
 			}
 			
 			// 一定距離以内であれば避ける
-			Vector3 diff = this.transform.position - bro.transform.position;
-			if (diff.magnitude < this.personalSpace )
+			var diff = this.transform.position - bro.position;
+			if ( diff.magnitude < this.personalSpace )
 			{
-				// リスト上、いくらかを無視する。
-				this.currentIgnoreRangeCount ++;
-				if( this.maxIgnoreRangeCount != 0 && this.currentIgnoreRangeCount >= this.maxIgnoreRangeCount ){
-					this.currentIgnoreRangeCount = 0;
-					continue;
-				}
-
-				// 避ける処理
-				this.rigidbody.velocity = diff.normalized * this.rigidbody.velocity.magnitude;
+				diffTotal += diff;
+				diffCount ++;
 			}
+		}
+		// リスト上、いくらかを無視する。
+		this.currentIgnoreRangeCount ++;
+		if( !( this.maxIgnoreRangeCount <= 0 ) && this.currentIgnoreRangeCount >= this.maxIgnoreRangeCount ){
+			this.currentIgnoreRangeCount -= this.maxIgnoreRangeCount;
+			return;
+		}
+		diffTotal += this.rigidbody.velocity;
+		diffTotal /= ++diffCount; 
+		// diff のパラメータが少な過ぎたら上書きをする
+		if( diffTotal.magnitude <= 0.001f ){
+			var x = UnityEngine.Random.Range(0,1f);
+			var z = UnityEngine.Random.Range(0,1f);
+			diffTotal = ( new Vector3( x, 0f, z ) + this.rigidbody.velocity );
+			// Debug.LogError( "Diff was " + diff.magnitude, this );
+		}else{
+			// 避ける処理
+			this.rigidbody.velocity = diffTotal.normalized * this.rigidbody.velocity.magnitude;					
 		}		
 	}
 	// 群れとして平均速度を意識するか？
@@ -310,7 +367,8 @@ public class BasicSwarmChild : MonoBehaviour {
 	}
 	
 	void OnDestroy(){
-		this.parent.children.Remove ( this );
+		this.parent.children.Remove ( this.transform );
+		this.parent.childrenSwarm.Remove( this );
 	}
 	public void Disappear(){
 		//Debug.LogError(this.gameObject.name, this);

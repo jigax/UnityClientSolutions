@@ -26,6 +26,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UniRx; using UnityEngine.UI;
+using UniRx.Triggers;
 
 # if false
 usage{
@@ -49,6 +50,7 @@ public class BasicInspector : Editor{
 	
 	bool isVisiblePopupPrefabs = false;
 	bool isVisibleWaypointPrefabs = false;
+	bool isVisibleChildren = false;
 	public override void OnInspectorGUI()
 	{
 		//DrawDefaultInspector();
@@ -177,10 +179,10 @@ public class BasicInspector : Editor{
 			EditorGUILayout.HelpBox(
 				"一度に何体出すかを指定します",MessageType.Info
 			);
-			script.popIntervalSec = EditorGUI.FloatField(
+			script.popUpCount = EditorGUI.IntField(
 				EditorGUILayout.GetControlRect(),
-				"Pop Interval Sec",
-				script.popIntervalSec
+				"PopUpCount",
+				script.popUpCount
 			);
 			EditorGUILayout.HelpBox(
 				"出現時のスタート地点からの範囲を指定します",MessageType.Info
@@ -222,7 +224,7 @@ public class BasicInspector : Editor{
 			
 			# endregion // drop area
 
-			if( GUILayout.Button("メンバーを表示 / 非表示") ){
+			if( GUILayout.Button("メンバーを" + ( !this.isVisiblePopupPrefabs ? "表示" : "非表示" )) ){
 				isVisiblePopupPrefabs = ! isVisiblePopupPrefabs;
 			}
 			if( isVisiblePopupPrefabs && script.prefabs != null ){
@@ -237,6 +239,7 @@ public class BasicInspector : Editor{
 					if( GUILayout.Button("x", GUILayout.Width(20f)) ){
 						script.prefabs.Remove( script.prefabs[i] );
 						i--;
+						continue;
 					}
 					script.prefabs[i] = EditorGUI.ObjectField(
 						EditorGUILayout.GetControlRect(),
@@ -351,7 +354,7 @@ public class BasicInspector : Editor{
 			);
 			script.childAroundCount = EditorGUI.IntField(
 				EditorGUILayout.GetControlRect(),
-				"bors's around count",
+				"bros's around count",
 				script.childAroundCount
 			);
 
@@ -392,6 +395,18 @@ public class BasicInspector : Editor{
 			);
 			EditorGUILayout.EndHorizontal();
 
+			
+			EditorGUILayout.HelpBox(
+				"グループ単位で出現させる",MessageType.Info
+			);
+			// 自分より先にリストに入っている対象しか気にしない。
+			GUILayout.Label("Use Group?");
+			script.useGroup = EditorGUILayout.Toggle(
+				//EditorGUILayout.GetControlRect(),
+				script.useGroup
+			);
+			
+			GUI.enabled = ! script.useGroup;
 			// 年功序列システム
 			EditorGUILayout.HelpBox(
 				"年功序列システム。自身より先に生成されたキャラとの距離しか気にしない。処理軽減用",MessageType.Info
@@ -409,6 +424,8 @@ public class BasicInspector : Editor{
 				script.reverseSeniorityRatio,0f,100f
 			);
 			EditorGUILayout.EndHorizontal();
+
+			GUI.enabled = true;
 
 			EditorGUILayout.BeginHorizontal();
 			GUILayout.Label("スクリーンに入ってる時だけ間隔調整をする?");
@@ -442,6 +459,26 @@ public class BasicInspector : Editor{
 				script.ReApply();
 			}
 		}
+		
+		if( GUILayout.Button("Swarm child " + ( !this.isVisibleChildren ? "表示" : "非表示" ) ) ){
+			isVisibleChildren = ! isVisibleChildren;
+		}
+		if( isVisibleChildren && script.children != null ){
+						
+			for( int i = 0; i < script.children.Count; i ++ ){
+				GUILayout.BeginHorizontal();
+				script.children[i] = EditorGUI.ObjectField(
+					EditorGUILayout.GetControlRect(),
+					"Member : " + i.ToString(),
+					script.children[i],
+					typeof(Transform),
+					false
+				) as Transform ;
+				GUILayout.EndHorizontal();
+			}
+		}
+		EditorGUILayout.ObjectField( "Group Target", script.groupTarget, typeof( Transform ) );
+
         if (GUI.changed)
             EditorUtility.SetDirty (target);
 	}
@@ -494,13 +531,19 @@ public abstract class BasicSwarm : MonoBehaviour
 	public Vector3 defaultScale = Vector3.one;
 	public float additionalScale = 1f;
 	public float childRandPosRange = 1f;
-	public List<BasicSwarmChild> children{
+	public List<Transform> children{
+		get; protected set;
+	}
+	public List<BasicSwarmChild> childrenSwarm{
 		get; protected set;
 	}
 	public float waypointNearlyRange = 1f; // この距離以内に到達したら到着したとみなす距離
 	public List<Transform> waypoints = new List<Transform>();
-	
-	public List<BasicSwarmChild> GetChildrenAroundChild( BasicSwarmChild _child, int _around ){
+	public bool useGroup = true;
+	public List<Transform> GetChildrenAroundChild( Transform _child, int _around ){
+		if( this.useGroup ){
+			return this.children;
+		}
 		if( _around <= 0 ){
 			Debug.Log(_around,_child); 
 			return this.children;
@@ -530,10 +573,12 @@ public abstract class BasicSwarm : MonoBehaviour
 	}
 	# endregion
 	void Awake(){
+		this.children = new List<Transform>();		
+		this.childrenSwarm = new List<BasicSwarmChild>();
+		this.goalinPerson = new List<Transform>();		
 		this.OnAwake();
 	}
 	protected virtual void OnAwake(){
-		this.children = new List<BasicSwarmChild>();		
 	}
 	// Use this for initialization
 	void Start () {		
@@ -548,17 +593,25 @@ public abstract class BasicSwarm : MonoBehaviour
 				Enumerable.Range(0,this.popUpCount).ToList().ForEach( y =>  this.CreateChild() );
 		});
 
-		Observable.EveryUpdate().Subscribe (_=> {
-			//this.UpdateCenter();
+		this.UpdateAsObservable().Subscribe (_=> {
 			this.UpdateAvarageVelocity();
-		});
+		}).AddTo(this);
+
+		if( this.useGroup ){
+			this.UpdateAsObservable().Subscribe( _=> {
+				this.UpdateCenter();				
+			}).AddTo(this);
+		}
+		
 	}
 	// ここを上書きして別コンポーネントを貼り付けたりする。
 	protected virtual void CreateChild(){
 		if( ! this.isCreating ) return;
 		this.CreateChild<BasicSwarmChild>( this.childRandPosRange );
 	}
-	
+	public float GetDistanceCenterBetween( Transform _t ){
+		return Vector3.Distance( this.center, _t.position );
+	}
 	// Update is called once per frame
 	void Update(){
 		this.OnUpdate();
@@ -566,25 +619,32 @@ public abstract class BasicSwarm : MonoBehaviour
 	protected virtual void OnUpdate(){}
 	void UpdateCenter(){
 		this.center = Vector3.zero;
-		foreach ( BasicSwarmChild child in this.children )
-		{
-			center += child.transform.position;
+		if( children.Count != 0 ){
+			foreach ( Transform child in this.children )
+			{
+				this.center += child.transform.position;
+			}
+			this.center /= children.Count;
+	
+			if( this.centerPoint != null ){			
+				this.centerPoint.position = center;
+			}
 		}
-		center /= (children.Count - 1);
-
+		return;
+		
+		// これどう実現しようか。
 		var count = 0;
 		while( (float)(count++) < suctionPower ){
 			center += this.goalPoint.position;
 			center /= 2;
 		}
-		this.centerPoint.position = center;
 	}
-	public Vector3 averageVelocity{get;protected set;}
+	public Vector3 averageVelocity;//{get;protected set;}
 	protected void UpdateAvarageVelocity(){
 		if( this.children.Count <= 0 ) return;
 		this.averageVelocity = Vector3.zero;
 		
-		foreach ( var child in this.children )
+		foreach ( var child in this.childrenSwarm )
 		{
 			this.averageVelocity += child.rigidbody.velocity;
 		}
@@ -606,9 +666,8 @@ public abstract class BasicSwarm : MonoBehaviour
 
 		child.parent = this;
 
-		this.children.Add ( child );
-		//Debug.Log ("children count " + this.children.Count ,this);
-
+		this.children.Add ( child.transform );
+		this.childrenSwarm.Add( child );
 		this.ApplyParams( child );
 		return g;
 	}
@@ -650,27 +709,57 @@ public abstract class BasicSwarm : MonoBehaviour
 		_child.onScreenOnly = this.onScreenOnly;
 		_child.childAround = this.childAroundCount;
 		
+		_child.isGroup = this.useGroup;
+		
 		// Waypoint
-		_child.OnGoal -= this.GetNextGoal;
-		_child.OnGoal += this.GetNextGoal;
-		_child.currentGoal = this.waypoints[0];
+		if( this.useGroup ){
+			_child.OnGoal -= this.RenewGroupGoal;
+			_child.OnGoal += this.RenewGroupGoal;
+			this.groupTarget = this.waypoints[0];
+			_child.currentGoal = this.groupTarget;
+		}else{
+			_child.OnGoal -= this.GetNextGoal;
+			_child.OnGoal += this.GetNextGoal;
+			_child.currentGoal = this.waypoints[0];
+		}
 		
 		
 	}
-	private Transform GetNextGoal(Transform _oldGoal){
-		int index = this.waypoints.FindIndex( c => c == _oldGoal );
+	public bool isGoalInCountMax{
+		get{
+			if( this.useGroup ){
+				return this.goalinPerson.Count >= this.children.Count;
+			}
+			return false;
+		}
+	}
+	public List<Transform> goalinPerson;
+	public Transform groupTarget;
+	Transform RenewGroupGoal( Transform _oldGoal, Transform _child ){
+		this.goalinPerson.Add( _child );
+
+		if( this.isGoalInCountMax ){
+			this.groupTarget = this.GetNextGoal( _oldGoal, _child );
+			this.goalinPerson.Clear();
+			Debug.LogError("Goal IN!!!");
+		}
+
+		return this.groupTarget;
+	}
+	Transform GetNextGoal(Transform _oldGoal, Transform _child){
+		int index = this.waypoints.IndexOf( _oldGoal );
 		++index;
 		Debug.Log( index + " is next index; / " + this.waypoints.Count );
 		if( index < this.waypoints.Count ){
-			return this.waypoints[ index ];
+			this.groupTarget = this.waypoints[ index ];
+			return this.groupTarget; 
 		}
-
 		return null;		
 	}
 	
 	// 出現済みキャラクタ全員にアプライしなおす。
 	public virtual void ReApply(){
-		foreach( var c in this.children ){
+		foreach( var c in this.childrenSwarm ){
 			this.ApplyParams( c ); // これ通るのか！
 		}
 	}
@@ -684,7 +773,7 @@ public abstract class BasicSwarm : MonoBehaviour
 			Debug.LogError ( "No prefabs!", this );
 			return null;
 		}
-		var r = UnityEngine.Random.Range ( 0, this.prefabs.Count -1 );
+		var r = UnityEngine.Random.Range ( 0, this.prefabs.Count );
 		var prefab = this.prefabs[r];
 		if( prefab == null ){
 			return GetPrefabFromListWithRandom( count ++ );
