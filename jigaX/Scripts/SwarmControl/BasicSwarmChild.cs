@@ -106,6 +106,9 @@ public class BasicSwarmChild : MonoBehaviour {
 	public float quickTurnValue = 10f;
 	public bool onScreenOnly = false;
 	public float waypointNealyRange;
+	public Transform currentGoal;
+	public System.Action OnPopup;
+	public System.Func<Transform,Transform> OnGoal;
 	void OnBecameInvisible(){
 		if( this.onScreenOnly )
 			screenIgnore = true;
@@ -123,15 +126,10 @@ public class BasicSwarmChild : MonoBehaviour {
 
 	void Start () {
 		// nav meshでやるため着地は最初に！
-		this.IsGroundedAndApply();
-		
-		// Observable.EveryEndOfFrame().Where( _=> true ).Subscribe( _=> {
-			
-		// });
-		
+		this.IsGroundedAndApply();		
 		this.OnStart();
 	}
-	void Update(){
+	void LateUpdate(){
 		this.Move();
 	}
 	protected virtual void OnStart(){}
@@ -139,6 +137,8 @@ public class BasicSwarmChild : MonoBehaviour {
 	// Update is called once per frame
 	protected bool screenIgnore = false;
 	protected bool timeIgnoring = false;
+	
+	// 接地チェック
 	protected virtual bool IsGroundedAndApply(){
 		RaycastHit hit;
 		if( Physics.Raycast(this.transform.position + (Vector3.up * 10f ),Vector3.down, out hit, 30f ) ){
@@ -165,7 +165,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		
 	}
 	protected Vector3 GetGoalDirection(){
-		return (this.parent.goalPosition - this.transform.position).normalized;
+		return (this.currentGoal.position - this.transform.position).normalized;
 	}
 	
 	protected virtual void Move(){
@@ -212,16 +212,20 @@ public class BasicSwarmChild : MonoBehaviour {
 		this.SetVelocityAsSwarm();
 		this.SetDirection();		
 	}
-	
 	protected virtual bool CheckDestroyDistance(){
-		if( Vector3.Distance( this.parent.goalPosition, this.transform.position ) < this.destroyRange ){
-			this.Disappear();
-			return true;
+		if( Vector3.Distance( this.currentGoal.position, this.transform.position ) < this.destroyRange ){
+			
+			this.currentGoal = this.OnGoal( this.currentGoal );
+			
+			if( this.currentGoal == null ){
+				Debug.LogError( "Disape",this );
+				this.Disappear();
+				return true;
+			}
+			
+
 		}
 		return false;
-	}
-	void LateUpdate () {
-		// ゴールとの距離確認
 	}
 	protected virtual void CheckIgnoreTime(){
 		// 無視中なら処理を飛ばす。
@@ -237,7 +241,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		else if( ! this.timeIgnoring && this.currentIgnoreTime > 1f ){// 1秒で切り替える
 			this.timeIgnoring = true;
 			this.currentIgnoreTime -= 1f;
-		}		
+		}
 	}
 	void RemoveNullBros(){
 		for(int i = this.bros.Count -1; i >= 0; i--){
@@ -269,7 +273,6 @@ public class BasicSwarmChild : MonoBehaviour {
 			}
 		}		
 	}
-	
 	// 群れとして平均速度を意識するか？
 	protected virtual void SetVelocityAsSwarm(){
 		// latest speed;

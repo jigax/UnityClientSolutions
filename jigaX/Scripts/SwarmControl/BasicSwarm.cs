@@ -48,6 +48,7 @@ using UnityEditor;
 public class BasicInspector : Editor{
 	
 	bool isVisiblePopupPrefabs = false;
+	bool isVisibleWaypointPrefabs = false;
 	public override void OnInspectorGUI()
 	{
 		//DrawDefaultInspector();
@@ -67,8 +68,6 @@ public class BasicInspector : Editor{
 				"Suction Power",
 				script.suctionPower,0f,20f
 			);
-			
-			
 			EditorGUILayout.HelpBox( //GUILayoutUtility.GetRect(new GUIContent("some button"), GUIStyle.none, GUILayout.MinHeight(50f) ),
 				"出現する子オブジェクトたちが `SetParent()` されるオブジェクトを指定します。",MessageType.Info
 			);
@@ -92,16 +91,51 @@ public class BasicInspector : Editor{
 			) as Transform ;
 			
 			EditorGUILayout.HelpBox("経路を指定します",MessageType.Info);
-			for( var i = 0; i < script.waypoints.Count; i++ ){
-				script.waypoints[i] = EditorGUI.ObjectField(
-					EditorGUILayout.GetControlRect(),
-					"Way Point" + i,
-					script.waypoints[i],
-					typeof(Transform),
-					true
-				) as Transform ;				
+			# region drop area
+
+			var dropArea = GUILayoutUtility.GetAspectRect(10f);
+			GUI.Box( dropArea ,"シーン中の経路として使えるTransformをドロップするとリストに追加されます。");
+			int id = GUIUtility.GetControlID(FocusType.Passive);
+			switch( Event.current.type ){
+				case EventType.DragUpdated:
+				case EventType.DragPerform:
+				if (!dropArea.Contains( Event.current.mousePosition )) break;
+				
+				DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+				DragAndDrop.activeControlID = id;
+				if(Event.current.type == EventType.DragPerform){
+					DragAndDrop.AcceptDrag();
+					
+					foreach( var draggedObject in DragAndDrop.objectReferences)
+					{
+						//Debug.Log("Drag Object:" + AssetDatabase.GetAssetPath(draggedObject));
+						if( ! ( draggedObject is GameObject ) ) continue;
+						var t = ( draggedObject as GameObject ).GetComponent<Transform>();
+						script.waypoints.Add( t );
+					}
+					DragAndDrop.activeControlID = 0;
+				}
+				break;
 			}
 			
+			# endregion // drop area
+			
+			isVisibleWaypointPrefabs = EditorGUILayout.Toggle(isVisibleWaypointPrefabs);
+			if( isVisibleWaypointPrefabs ){
+				for( var i = 0; i < script.waypoints.Count; i++ ){
+					script.waypoints[i] = EditorGUI.ObjectField(
+						EditorGUILayout.GetControlRect(),
+						"Way Point" + i,
+						script.waypoints[i],
+						typeof(Transform),
+						true
+					) as Transform ;
+				}
+				// waypoint のクリア
+				if( GUILayout.Button("Clear waypoints") ){
+					script.waypoints.Clear();
+				}
+			}
 			EditorGUILayout.HelpBox(
 				"ゴール地点を指定します",MessageType.Info
 			);
@@ -140,19 +174,29 @@ public class BasicInspector : Editor{
 				"Pop Interval Sec",
 				script.popIntervalSec
 			);
-			
+			EditorGUILayout.HelpBox(
+				"一度に何体出すかを指定します",MessageType.Info
+			);
+			script.popIntervalSec = EditorGUI.FloatField(
+				EditorGUILayout.GetControlRect(),
+				"Pop Interval Sec",
+				script.popIntervalSec
+			);
+			EditorGUILayout.HelpBox(
+				"出現時のスタート地点からの範囲を指定します",MessageType.Info
+			);
 			script.childRandPosRange = EditorGUILayout.FloatField(
 				"childRandPosRange",
 				script.childRandPosRange
 			);
-			
-			
+
 			// prefabs
 			// drop area
 			# region drop area
-			var dropArea = GUILayoutUtility.GetAspectRect(10f);
+
+			dropArea = GUILayoutUtility.GetAspectRect(10f);
 			GUI.Box( dropArea ,"プレファブをドロップすると出現リストに追加されます。");
-			int id = GUIUtility.GetControlID(FocusType.Passive);
+			id = GUIUtility.GetControlID(FocusType.Passive);
 			switch( Event.current.type ){
 				case EventType.DragUpdated:
 				case EventType.DragPerform:
@@ -204,8 +248,6 @@ public class BasicInspector : Editor{
 					GUILayout.EndHorizontal();
 				}
 			}
-
-			
 		}
 		
 		// soludiers param
@@ -399,11 +441,7 @@ public class BasicInspector : Editor{
 			if (GUILayout.Button("Re-Applay to all")){
 				script.ReApply();
 			}
-			
-			
 		}
-		
-		
         if (GUI.changed)
             EditorUtility.SetDirty (target);
 	}
@@ -426,7 +464,6 @@ public class BackGroundScope : GUI.Scope {
 // namespace jigaX{
 public abstract class BasicSwarm : MonoBehaviour 
 {
-
 	public Transform startPoint;
 	public Transform goalPoint;
 	public Transform parent;
@@ -434,6 +471,8 @@ public abstract class BasicSwarm : MonoBehaviour
 	public List<GameObject> prefabs;
 	public float suctionPower = 1f;
 	public int popCountAtStart = 10;
+	public float popIntervalSec = 1f;
+	[RangeAttribute(1,100)]public int popUpCount = 1;
 	public float defaultChildSpeed = 0.5f;
 	public float additionalChildSpeedRange = 0f;
 	public float turbulence = 0.5f;
@@ -454,13 +493,10 @@ public abstract class BasicSwarm : MonoBehaviour
 	public bool onScreenOnly = false;
 	public Vector3 defaultScale = Vector3.one;
 	public float additionalScale = 1f;
-	[RangeAttribute(1,100)]public int popUpCount = 1;
 	public float childRandPosRange = 1f;
-
 	public List<BasicSwarmChild> children{
 		get; protected set;
 	}
-	
 	public float waypointNearlyRange = 1f; // この距離以内に到達したら到着したとみなす距離
 	public List<Transform> waypoints = new List<Transform>();
 	
@@ -485,7 +521,6 @@ public abstract class BasicSwarm : MonoBehaviour
 		}
 	}
 	// 出現位置に関して
-	public float popIntervalSec = 1f;
 	# region ui button trigger
 	public void IncreasePopCount(){ // UIで操作するボタンに対応させる
 		this.popUpCount ++;
@@ -494,8 +529,6 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.popUpCount --;
 	}
 	# endregion
-
-
 	void Awake(){
 		this.OnAwake();
 	}
@@ -531,7 +564,6 @@ public abstract class BasicSwarm : MonoBehaviour
 		this.OnUpdate();
 	}
 	protected virtual void OnUpdate(){}
-
 	void UpdateCenter(){
 		this.center = Vector3.zero;
 		foreach ( BasicSwarmChild child in this.children )
@@ -579,7 +611,7 @@ public abstract class BasicSwarm : MonoBehaviour
 
 		this.ApplyParams( child );
 		return g;
-	}	
+	}
 	protected virtual void ApplyParams<T>( T _child ) where T : BasicSwarmChild{
 
 		// 個性の付与
@@ -615,11 +647,25 @@ public abstract class BasicSwarm : MonoBehaviour
 		// 旋回性能
 		additional = UnityEngine.Random.Range( 0f, this.additionalQuickTurnValue );
 		_child.quickTurnValue = this.quickTurnValue + additional;
-		
 		_child.onScreenOnly = this.onScreenOnly;
-		
 		_child.childAround = this.childAroundCount;
 		
+		// Waypoint
+		_child.OnGoal -= this.GetNextGoal;
+		_child.OnGoal += this.GetNextGoal;
+		_child.currentGoal = this.waypoints[0];
+		
+		
+	}
+	private Transform GetNextGoal(Transform _oldGoal){
+		int index = this.waypoints.FindIndex( c => c == _oldGoal );
+		++index;
+		Debug.Log( index + " is next index; / " + this.waypoints.Count );
+		if( index < this.waypoints.Count ){
+			return this.waypoints[ index ];
+		}
+
+		return null;		
 	}
 	
 	// 出現済みキャラクタ全員にアプライしなおす。
