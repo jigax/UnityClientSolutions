@@ -4,6 +4,8 @@
 	Code Written,
 	by Kunihiro Sasakawa as s2kw@jigax.jp
 
+波打つ表現をUVスクロールで実現する版
+
 -------------------------------------------------*/
 
 
@@ -56,7 +58,7 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
                     // Calc spherical harmonics and vertex lights. Ripped from compiled surface shader.
                     float3 worldPos = mul(_Object2World, v.vertex).xyz;
                     float3 worldNormal = mul((float3x3)_Object2World, SCALED_NORMAL);
-                    o.vlight = float3(0);
+                    // o.vlight = float3(0); // DirectX11だと動かないのでコメントアウト
                     #ifdef LIGHTMAP_OFF
                         float3 shlight = ShadeSH9(float4(worldNormal, 1.0));
                         o.vlight = shlight;
