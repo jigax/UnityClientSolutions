@@ -5,72 +5,71 @@
 -------------------------------------------------*/
 
 
-Shader "jigaX/SkyCircus/Wave" {
-	Properties {
-		_Color ("Color", Color) = (1,1,1,1)
-		_MainTex ("Albedo (RGB)", 2D) = "white" {}
+Shader "jigaX/FlagWave" {
+    Properties {
+        _Color ("Color", Color) = (1,1,1,1)
+        _MainTex ("Albedo (RGB)", 2D) = "white" {}
         
-        _X ("X", Range(0,1) ) = 0.1
-        _Y ("Y", Range(0,1) ) = 0.1
-        _Z ("Z", Range(0,1) ) = 0.1
-        _Speed ("Speed", float ) = 0.1
-        _WaveTex("Wave (Gray)", 2D) = "gradiant"{}
-        _FactTex("Fact (Gray)", 2D) = "gradiant"{}
-	}
-	SubShader {
-        Pass{
-		Tags { "RenderType"="Opaque"}
-		LOD 400
-		Cull Off
-		CGPROGRAM
-		// Physically based Standard lighting model, and enable shadows on all light types
-		//#pragma surface surf Standard fullforwardshadows
-        #pragma vertex vert
-        #pragma fragment frag
-        #include "UnityCG.cginc"
-		// Use shader model 3.0 target, to get nicer looking lighting
-		#pragma target 3.0
+        _FactX ( "X Fact", Range(0,100) ) = 0.01
+        _FactY ( "Y Fact", Range(0,100) ) = 0.01
+        _FactZ ( "Z Fact", Range(0,100) ) = 0.01
+        _Times ( "Time", float ) = 0.0
+        _Waves ( "Wave", Range(0, 100) ) = 1.0
+        _Ignore( "Ignore range", Range(0,100)) = 0.0
 
-		struct Input {
-            float4 pos : SV_POSITION;
-            float2 uv0 : TEXCOORD0;
-        };
+    }
 
-		fixed4 _Color;
-		sampler2D _MainTex;
-        sampler2D _WaveTex;
-        float4 _WaveTex_ST;
-        sampler2D _FactTex;
-        fixed _X,_Y,_Z;
-        
-        Input vert( appdata_full v ){
-            Input o;
-            o.uv0 = tex2D( _MainTex, v.texcoord.xy );
 
-            v.texcoord.xy = (v.texcoord.xy * _WaveTex_ST.xy) + _WaveTex_ST.zw;
+    SubShader {
+            Tags { "RenderType"="Opaque" }
+            LOD 200
+            Cull Off
+            
+            CGPROGRAM
+            #pragma surface surf Lambert vertex:vert
+            //#pragma multi_compile_fwdbase
+            // Use shader model 3.0 target, to get nicer looking lighting
+            #pragma target 3.0
+            #include "UnityCG.cginc"
+            #include "AutoLight.cginc"
 
-            fixed4 wave = normalize(tex2D ( _WaveTex, v.texcoord.xy ));
-            fixed4 fact = normalize(tex2D ( _FactTex, v.texcoord.xy ));
-            fixed result = ( wave.r - 0.5 ) * fact.r;
-            v.vertex.x += result * _X;
-            v.vertex.z += result * _Z;
-            v.vertex.y += result * _Y;
+            struct Input
+            {
+                float3 color : COLOR;
+                float3 texcoord : TEXCOORD0;
+            };
 
-            o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
-            return o; 
-        }
+            sampler2D _MainTex;
+            float4 _WaveTex_ST;
+            fixed _FactX,_FactY,_FactZ,_Ignore;
+            float _Times,_Waves;
+            half4 _Color;
 
-        fixed4 frag( Input IN ) : SV_Target{
-            float4 c = tex2D ( _MainTex, IN.uv0) * _Color;
-            return c;
-        }
-		// void surf (Input IN, inout SurfaceOutputStandard o) {
-		// 	//Albedo comes from a texture tinted by color
-		// 	fixed4 c = tex2D (_MainTex, IN.uv0) * _Color;
-		// 	o.Albedo = c.rgb;
-		// }
-		ENDCG
-        }
-	} 
-	FallBack "Diffuse"
+            float waveOffset( float _p ){
+                float p = abs( _p );
+                float sinV = sin( p * _Waves - _Times );
+                float reduct = ( p / _Ignore );
+                return sinV * reduct;       
+            }
+
+            void vert( inout appdata_full v )   {
+//          UNITY_INITIALIZE_OUTPUT(v2f, o); // must initialize 
+
+                float4 vPos = v.vertex;
+                vPos.w = v.vertex.w;
+
+                vPos.x = v.vertex.x + waveOffset( v.vertex.y ) * _FactX;
+                vPos.y = v.vertex.y + waveOffset( v.vertex.z ) * _FactY;
+                vPos.z = v.vertex.z + waveOffset( v.vertex.x ) * _FactZ;
+                v.vertex = vPos;
+            }
+            void surf( Input IN, inout SurfaceOutput o ){
+                half4 c = tex2D (_MainTex, IN.texcoord);
+                o.Albedo = c.rgb;
+                o.Alpha = c.a;
+            }
+
+            ENDCG
+    } 
+    FallBack "Diffuse"
 }
