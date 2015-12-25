@@ -40,6 +40,12 @@ public abstract class StabbedInfoHolder : MonoBehaviour, IStabbedInfoHolder {
 
     [SerializeField] bool follow;
     [SerializeField] bool visible;
+    public void Invisible(){
+        this.visible = false;
+    }
+    public void Visible(){
+        this.visible = true;
+    }
     public System.Func<Vector3> GetFollowTargetPosition;
     public abstract void UpdateInfo();
 	void Awake(){

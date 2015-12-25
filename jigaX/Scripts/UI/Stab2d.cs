@@ -59,6 +59,7 @@ public abstract class Stab2d<T> : MonoBehaviour
         if( canvas == null ){
             // canvas が非アクティブな場合もある。
             Debug.LogError("Canvas could not found", this);
+            this.info.Visible();
             return this.info;
         }
 
