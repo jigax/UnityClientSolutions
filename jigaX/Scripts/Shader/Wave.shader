@@ -47,9 +47,9 @@ Shader "jigaX/FlagWave" {
 
             float waveOffset( float _p ){
                 float p = abs( _p );
-                float sinV = sin( p * _Waves - _Times );
-                float reduct = ( p / _Ignore );
-                return sinV * reduct;       
+                float sinV = cos( p * _Waves - _Times );
+                float reduct = clamp ( p / _Ignore, 0, 1 );
+                return sinV * reduct;
             }
 
             void vert( inout appdata_full v )   {
