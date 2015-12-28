@@ -746,19 +746,11 @@ public abstract class BasicSwarm : MonoBehaviour
             return this.waypoints[index];
 
         return this.goalPoint;
-
-		// if( this.isGoalInCountMax ){
-		// 	this.groupTarget = this.GetNextGoal( _oldGoal, _child );
-		// 	this.goalinPerson.Clear();
-		// 	Debug.LogError("Goal IN!!!");
-		// }
-
-		// return this.groupTarget;
 	}
-	Transform GetNextGoal(Transform _oldGoal, Transform _child){
+	protected virtual Transform GetNextGoal(Transform _oldGoal, Transform _child){
 		int index = this.waypoints.IndexOf( _oldGoal );
 		++index;
-		Debug.Log( index + " is next index; / " + this.waypoints.Count );
+		//Debug.Log( index + " is next index; / " + this.waypoints.Count );
 		if( index < this.waypoints.Count ){
 			this.groupTarget = this.waypoints[ index ];
 			return this.groupTarget; 
