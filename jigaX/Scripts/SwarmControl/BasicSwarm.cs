@@ -735,18 +735,25 @@ public abstract class BasicSwarm : MonoBehaviour
 	}
 	public List<Transform> goalinPerson;
 	public Transform groupTarget;
+    
+    // 次の目標を返すように変更
 	Transform RenewGroupGoal( Transform _oldGoal, Transform _child ){
 		if( ! System.Object.ReferenceEquals( this.groupTarget, _oldGoal ) ) return this.groupTarget;
 		
-		this.goalinPerson.Add( _child );
+		// this.goalinPerson.Add( _child );
+        var index = this.waypoints.IndexOf(_oldGoal);
+        if( this.waypoints.Count > ++index )
+            return this.waypoints[index];
 
-		if( this.isGoalInCountMax ){
-			this.groupTarget = this.GetNextGoal( _oldGoal, _child );
-			this.goalinPerson.Clear();
-			Debug.LogError("Goal IN!!!");
-		}
+        return this.goalPoint;
 
-		return this.groupTarget;
+		// if( this.isGoalInCountMax ){
+		// 	this.groupTarget = this.GetNextGoal( _oldGoal, _child );
+		// 	this.goalinPerson.Clear();
+		// 	Debug.LogError("Goal IN!!!");
+		// }
+
+		// return this.groupTarget;
 	}
 	Transform GetNextGoal(Transform _oldGoal, Transform _child){
 		int index = this.waypoints.IndexOf( _oldGoal );

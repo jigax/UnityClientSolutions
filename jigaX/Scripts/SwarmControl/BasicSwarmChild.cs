@@ -133,13 +133,11 @@ public class BasicSwarmChild : MonoBehaviour {
 		this.OnAwake();
 	}
 	protected virtual void OnAwake(){}
-
 	void Start () {
 		// nav meshでやるため着地は最初に！
-		this.IsGroundedAndApply();		
 		this.OnStart();
 	}
-	void LateUpdate(){
+	void FixedUpdate(){
 		this.Move();
 		this.BackForSwarm();
 	}
@@ -153,21 +151,11 @@ public class BasicSwarmChild : MonoBehaviour {
 	[SerializeField]protected bool isTimeIgnoring = false;
 	
 	// 接地チェック
-	protected virtual bool IsGroundedAndApply(){
-		RaycastHit hit;
-		if( Physics.Raycast(this.transform.position + (Vector3.up * 50f ), Vector3.down, out hit, 30f ) ){
-			var p = this.transform.position;
-			p.y = hit.point.y;
-			
-			this.transform.position = p;
-			return true;
-		}
-		return false;
-	}
 	protected virtual bool WillGroundNextTime(){
 		var c = Color.red;
 		bool isGround = false;
 		var pos = ( this.transform.position + this.rigidbody.velocity ) + (Vector3.up * 1f );
+        var ground = new Vector3( pos.x, this.transform.position.y - 10f, pos.z ); 
 		if( Physics.Raycast( pos , Vector3.down, 3f ) ){
 			c = Color.green;
 			isGround = true;
@@ -175,7 +163,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		# if UNITY_EDITOR
 		var endpoint = pos;
 		endpoint.y = - 10f;
-		Debug.DrawLine( pos, endpoint, c);
+		// Debug.DrawLine( pos, endpoint, c, 0.1f);
 		# endif
 		return isGround;
 	}
@@ -190,18 +178,9 @@ public class BasicSwarmChild : MonoBehaviour {
 		}
 
 		# if UNITY_EDITOR
-			Debug.DrawLine( this.transform.position, this.transform.position + this.rigidbody.velocity,Color.red );
+			//Debug.DrawLine( this.transform.position, this.transform.position + this.rigidbody.velocity,Color.red );
 		# endif
 
-		if( this.IsGroundedAndApply() ){
-			this.SetRenderersColor( Color.white );
-			if( ! this.WillGroundNextTime() ){
-				this.EscapeFromBarrier();
-				return;
-			}
-		}else{
-			this.SetRenderersColor( Color.red );
-		}
 
 		// スクリーン外無視？
 		if( this.screenIgnore ) return;
@@ -283,7 +262,9 @@ public class BasicSwarmChild : MonoBehaviour {
 	public void SetRenderersColor( Color _color ){
 		var renderers = GetComponentsInChildren<Renderer>();
 		foreach( var r in renderers ){
-			r.material.color = Color.white;
+			foreach ( var m in r.materials){
+                m.color = Color.white;
+            }
 		}
 	}
 	protected virtual void TakeDistance(){
@@ -321,8 +302,8 @@ public class BasicSwarmChild : MonoBehaviour {
 		diffTotal /= ++diffCount; 
 		// diff のパラメータが少な過ぎたら上書きをする
 		if( diffTotal.magnitude <= 0.001f ){
-			var x = UnityEngine.Random.Range(0,1f);
-			var z = UnityEngine.Random.Range(0,1f);
+			var x = UnityEngine.Random.Range(-1f,1f);
+			var z = UnityEngine.Random.Range(-1f,1f);
 			diffTotal = ( new Vector3( x, 0f, z ) + this.rigidbody.velocity );
 			// Debug.LogError( "Diff was " + diff.magnitude, this );
 		}else{
