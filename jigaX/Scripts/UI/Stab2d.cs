@@ -48,8 +48,10 @@ public abstract class Stab2d<T> : MonoBehaviour
     }
     void Start(){
         this.Create2DInfo();
+        this.OnStart();
     }
-    T info;
+    protected virtual void OnStart(){}
+    protected T info;
     public T Create2DInfo(){
         var g = Instantiate( this.stabbed2DPrefab );
         this.info = g.GetComponent<T>();
