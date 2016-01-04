@@ -9,7 +9,7 @@ BoidParent.cs
 
 Date:
 Description:
-
+集団移動に関するベーシックなコンポーネント
 -------------------------------------------------*/
 
 
@@ -19,21 +19,11 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 //using UniRx; using UnityEngine.UI;
-# if UNITY_EDITOR
-using UnityEditor;
-[CustomEditor( typeof( BoidParent ) )]
-public class BoidParentInspector : Editor{
-	public override void OnInspectorGUI()
-	{
-		DrawDefaultInspector();
-		return;
-		var script = target as BoidParent;
-	}
-}
-# endif
 
-// namespace jigaX{
-public abstract class BoidParent : MonoBehaviour {
+namespace jigaX{
+public abstract class BoidParent<ChildType> : MonoBehaviour 
+    where ChildType : BoidChild
+{
 
 	void Awake(){
 	
@@ -42,11 +32,12 @@ public abstract class BoidParent : MonoBehaviour {
 	// Use this for initialization
     public int maxChild = 30;
     public GameObject boidsChildPrefab;
-    public List<BoidChild> boidsChildren = new List<BoidChild>();
+    public List<ChildType> boidsChildren = new List<ChildType>();
     public float turbulence = 1f;
     public float personalSpace = 1f;
+    [SerializeField] float speedFact = 10f;
     enum RotType{
-        Type1,Type2,Type3
+        Type1,Type2,Type3,Type4
     }
     [SerializeField] RotType type;
     void Start ()
@@ -58,20 +49,25 @@ public abstract class BoidParent : MonoBehaviour {
         }
     }
     
-    protected virtual BoidChild CreateChild(){
-        var g = Instantiate( boidsChildPrefab ) as GameObject;
-        var child = g.GetComponent<BoidChild>();
+    protected virtual ChildType CreateChild(){
+        if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
+        var g = Instantiate( this.boidsChildPrefab ) as GameObject;
 
-        child.transform.position
+        g.transform.position
             = new Vector3(Random.Range(-50f, 50f),
                         this.boidsChildPrefab.transform.position.y,
                         Random.Range(-50f, 50f));
 
+        var child = g.AddComponent<ChildType>();
+
+        if( child == null ) return null;
+
         switch( this.type ){
-            case RotType.Type1 : child.ApplyRot += this.ApplyType1Rot; break;
-            case RotType.Type2 : child.ApplyRot += this.ApplyType2Rot; break;
-            case RotType.Type3 : child.ApplyRot += this.ApplyType3Rot; break;
-        } 
+            case RotType.Type1 : this.ApplyRot += this.ApplyType1Rot; break;
+            case RotType.Type2 : this.ApplyRot += this.ApplyType2Rot; break;
+            case RotType.Type3 : this.ApplyRot += this.ApplyType3Rot; break;
+            case RotType.Type4 : this.ApplyRot += this.ApplyType3Rot; break;
+        }
         return child;
     }
     
@@ -83,9 +79,9 @@ public abstract class BoidParent : MonoBehaviour {
         
         if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
 
-        foreach (BoidChild child_a in this.boidsChildren)
+        foreach (ChildType child_a in this.boidsChildren)
         {
-            foreach (BoidChild child_b in this.boidsChildren)
+            foreach (ChildType child_b in this.boidsChildren)
             {
                 if ( System.Object.ReferenceEquals( child_a, child_b ) )
                 {
@@ -96,43 +92,61 @@ public abstract class BoidParent : MonoBehaviour {
         
                 if (diff.magnitude < Random.Range(2, this.personalSpace))
                 {
-                    child_a.rigidbody.velocity =
-                        diff.normalized * child_a.rigidbody.velocity.magnitude;
+                    var gravity = child_a.velocity.y;
+                    
+                    var a = diff.normalized * child_a.velocity.magnitude;
+                        
+                    
+                    child_a.velocity = new Vector3(
+                        a.x,
+                        a.y + gravity,
+                        a.z
+                     );
                 }
             }
         }
         
         // 平均速度を適用
         Vector3 averageVelocity = this.GetAvarageVelocity();
-        foreach (BoidChild child in this.boidsChildren)
+        foreach (ChildType child in this.boidsChildren)
         {
-            child.rigidbody.velocity = child.rigidbody.velocity * this.turbulence
+            child.velocity = child.velocity * this.turbulence
                                     + averageVelocity * (1f - this.turbulence);
         }
-        foreach ( BoidChild child in this.boidsChildren ){
-            child.ApplyRot( child );
+        foreach ( ChildType child in this.boidsChildren ){
+            this.ApplyRot( child );
         }
 	}
-    
+        // どの方式で回転するかを指定される
+    public System.Action<ChildType> ApplyRot;
+
+
         //Type1
-    void ApplyType1Rot( BoidChild _child ){
+    protected virtual void ApplyType1Rot( ChildType _child ){
         Quaternion.Slerp( _child.transform.rotation,
-            Quaternion.LookRotation( _child.rigidbody.velocity.normalized),
+            Quaternion.LookRotation( _child.velocity.normalized),
             Time.deltaTime * 10f);
     }
-    void ApplyType2Rot( BoidChild _child ){
+    protected virtual void ApplyType2Rot( ChildType _child ){
         //Type2
         _child.transform.LookAt( this.GetCenter() );
     }
     
-    void ApplyType3Rot( BoidChild _child ){
+    protected virtual void ApplyType3Rot( ChildType _child ){
         //Type3
         _child.transform.rotation =
             Quaternion.Slerp(_child.transform.rotation,
                             Quaternion.LookRotation( this.GetAvarageVelocity().normalized),
                             Time.deltaTime * 3f);
 
-    }    
+    }
+    protected virtual void ApplyType4Rot( ChildType _child ){
+        // type4
+        var r = _child.velocity;
+        Quaternion.Slerp( _child.transform.rotation,
+            Quaternion.LookRotation( r.normalized),
+            Time.deltaTime * 10f);
+    }
     
     
     // 群れの中心を得る
@@ -153,9 +167,9 @@ public abstract class BoidParent : MonoBehaviour {
     public Vector3 GetAvarageVelocity(){
         Vector3 averageVelocity = Vector3.zero;
         
-        foreach (BoidChild child in this.boidsChildren)
+        foreach (ChildType child in this.boidsChildren)
         {
-            averageVelocity += child.rigidbody.velocity;
+            averageVelocity += child.velocity;
         }
         
         averageVelocity /= this.boidsChildren.Count;
@@ -167,4 +181,4 @@ public abstract class BoidParent : MonoBehaviour {
     
 }
 
-// } // namespace
+} // namespace
