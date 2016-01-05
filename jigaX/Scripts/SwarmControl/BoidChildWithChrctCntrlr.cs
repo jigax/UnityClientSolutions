@@ -34,7 +34,7 @@ public class BoidChildWithChrctCntrlrInspector : Editor{
 namespace jigaX{
 [RequireComponent(typeof(CharacterController))]
 public class BoidChildWithChrctCntrlr : BoidChild {
-    protected CharacterController m_controller;
+    [SerializeField]protected CharacterController m_controller;
     protected CharacterController controller{
         get{
             if( this.m_controller == null ) this.m_controller = GetComponent<CharacterController>();
@@ -48,8 +48,7 @@ public class BoidChildWithChrctCntrlr : BoidChild {
     void Update(){
         this.controller.SimpleMove( this.velocityVal );
     }
-    [HideInInspector]
-    Vector3 velocityVal = Vector3.one;
+    [SerializeField]Vector3 velocityVal = Vector3.zero;
     protected override void SetVelocity( Vector3 _val){
         this.velocityVal = _val;
     }

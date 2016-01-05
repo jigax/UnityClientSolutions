@@ -21,7 +21,7 @@ using System.Collections.Generic;
 
 namespace jigaX{
 public class BoidChildWithRigidbody : BoidChild {
-	Rigidbody m_rigidbody;
+	[SerializeField]Rigidbody m_rigidbody;
 	public Rigidbody rigidbody{
 		get{
 			if ( m_rigidbody == null ) {

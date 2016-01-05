@@ -30,11 +30,12 @@ public abstract class BoidChild : MonoBehaviour, IBoidChild {
             return GetVelocity();
         }
         set{
+            //Debug.Log( value, this );
             SetVelocity( value );
         }
     }
     protected abstract void SetVelocity( Vector3 _val );
-    protected  abstract Vector3 GetVelocity();
+    protected abstract Vector3 GetVelocity();
 }
 
 } // namespace
