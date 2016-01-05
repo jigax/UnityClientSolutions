@@ -9,7 +9,7 @@
 -------------------------------------------------*/
 
 
-Shader "jigaX/SkyCircus/RightyCloudShadow" {
+Shader "SkyCircus/RightyCloudShadow" {
 	Properties {
         _MainTex ("Albedo (RGB)", 2D) = "white" {}
 		_AmbientColor ("Ambient Color", Color) = (1,1,1,1)
@@ -18,6 +18,15 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
         _LightFact ("Light fact", Range(0,1) ) = 1
         _Alpha ("Alpha", Range(0,1) ) = 1
         _AdditionalColor("Add Color", Color) = (0,0,0,0)
+
+        _FactX ( "X Fact", Range(0,10) ) = 0.01
+        _FactY ( "Y Fact", Range(0,10) ) = 0.01
+        _FactZ ( "Z Fact", Range(0,10) ) = 0.01
+        _Speed ( "Speed", float ) = 1.0
+        _Waves ( "Wave", Range(0, 100) ) = 1.0
+        _Ignore( "Ignore range", Range(0,100)) = 0.0
+
+
 	}
     SubShader {
         Tags { "RenderType" = "Opaque"}
@@ -26,6 +35,7 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
         // then per-vertex the next 4 most important lights,
         // then per-vertex spherical harmionics the rest of the lights,
         // and the ambient light value.
+
         Pass {
             Tags {"LightMode" = "ForwardBase"}
             CGPROGRAM
@@ -35,6 +45,7 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
                 #pragma fragmentoption ARB_precision_hint_fastest
                 #include "UnityCG.cginc"
                 #include "AutoLight.cginc"
+                #include "Assets/UnityClientSolutions/jigaX/Scripts/Shader/jigaX.cginc"
                 struct Input
                 {
                     float4 pos : SV_POSITION;
@@ -47,10 +58,15 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
 
                 fixed4 _AdditionalColor;
                 float4 _MainTex_ST;
+
+                fixed _FactX,_FactY,_FactZ;
+                float _Speed,_Waves,_Ignore;
                 
                 Input vert(appdata_full v)
                 {
                     Input o;
+                    float3 fact = ( _FactX,_FactY,_FactZ );
+                    v.vertex = vert_wave( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
                     o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                     // Calc normal and light dir.
                     o.lightDir = normalize(ObjSpaceLightDir(v.vertex));
@@ -120,16 +136,24 @@ Shader "jigaX/SkyCircus/RightyCloudShadow" {
                 #pragma fragmentoption ARB_precision_hint_fastest
                 #include "UnityCG.cginc"
                 #include "AutoLight.cginc"
- 
+                #include "Assets/UnityClientSolutions/jigaX/Scripts/Shader/jigaX.cginc"
+
                 struct Input
                 {
                     float4 pos : SV_POSITION;
                     float3 lightDir : TEXCOORD1;
                     float3 vNormal : TEXCOORD2;
                 };
+
+                fixed _FactX,_FactY,_FactZ;
+                float _Speed,_Waves,_Ignore;
+
                 Input vert(appdata_full v)
                 {
                     Input o;
+                    float3 fact = ( _FactX,_FactY,_FactZ );
+                    v.vertex = vert_wave( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
+
                     o.pos = mul( UNITY_MATRIX_MVP, v.vertex );
                     // Calc normal and light dir.
                     o.lightDir = normalize( ObjSpaceLightDir( v.vertex ));

@@ -33,13 +33,15 @@ public class FlagWaverInspector : Editor{
 
 // namespace jigaX{
 public abstract class FlagWaver : MonoBehaviour {
-    [SerializeField] Material target;
+    List<Material> targets = new List<Material>();
     [SerializeField] float time;
     [SerializeField] float speed;
-    [SerializeField] Shader shader;
 	void Awake(){
-        if(target == null)
-            this.target = GetComponent<Renderer>().material;
+        foreach (var renderer in GetComponents<Renderer>() )
+        {
+            foreach( var m in renderer.materials )
+                this.targets.Add(m);
+        }
             
         this.time = 0f;
 	}
@@ -47,7 +49,7 @@ public abstract class FlagWaver : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
        this.time += Time.deltaTime * this.speed;
-	   this.target.SetFloat("_Times",this.time);
+	   this.targets.ForEach( _=> _.SetFloat("_Times",this.time) );
        if( this.time > float.MaxValue / 2 ) this.time = 0f;
 	}
 }
