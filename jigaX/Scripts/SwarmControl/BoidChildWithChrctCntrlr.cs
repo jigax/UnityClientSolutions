@@ -45,9 +45,21 @@ public class BoidChildWithChrctCntrlr : BoidChild {
             this.m_controller = value;
         }
     }
+    [SerializeField]protected Animator m_animator;
+    protected Animator animator{
+        get{
+            if( this.m_animator == null ) this.m_animator = GetComponent<Animator>();
+            return this.m_animator;
+        }
+        set{
+            this.m_animator = value;
+        }
+    }    
     void Update(){
         this.controller.SimpleMove( this.velocityVal );
+        this.OnUpdate();
     }
+    protected virtual void OnUpdate(){}
     [SerializeField]Vector3 velocityVal = Vector3.zero;
     protected override void SetVelocity( Vector3 _val){
         this.velocityVal = _val;

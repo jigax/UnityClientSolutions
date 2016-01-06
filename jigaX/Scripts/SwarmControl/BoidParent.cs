@@ -36,34 +36,34 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     public int maxChild = 30;
     public GameObject boidsChildPrefab;
     public List<ChildType> boidsChildren = new List<ChildType>();
-    public float turbulence = 1f;
+    [RangeAttribute(0f,1f)]public float turbulence = 0.5f;
     public float personalSpace = 1f;
     [SerializeField] float speedFact = 10f;
     [SerializeField] float loyalty = 3f;
     [SerializeField] float quicklyOfTurn = 10f;
+    [SerializeField] float popRange = 10f;
+    [SerializeField] float leaveVelocity = 10f;
+    [SerializeField][RangeAttribute(0f,0.5f)] float createChildDelayTime = 0.2f;
+    
     enum RotType{
         Type1,Type2,Type3,Type4
     }
     [SerializeField] RotType type;
-    void Start ()
+    IEnumerator Start ()
     {
+        this.OnStart();
         for (int i = 0; i < this.maxChild; i++)
         {
             this.boidsChildren.Add( this.CreateChild() );
+            yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
         }
-        this.OnStart();
     }
     
-    protected virtual ChildType CreateChild(){
+    protected ChildType CreateChild(){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
         var g = Instantiate( this.boidsChildPrefab ) as GameObject;
 
-        g.transform.position
-            = new Vector3(
-                    this.transform.position.x + Random.Range(-50f, 50f),
-                    this.transform.position.y,
-                    this.transform.position.z + Random.Range(-50f, 50f));
-
+        g.transform.position = this.GetPopPosition();
         var child = g.AddComponent<ChildType>();
 
         if( child == null ) return null;
@@ -76,16 +76,47 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         }
         return child;
     }
+    protected virtual Vector3 GetPopPosition(){
+        return this.transform.position + this.GetRandomVector3ForPopPoint();
+    }
+    protected virtual Vector3 GetRandomVector3ForPopPoint(){
+        return new Vector3 (
+            Random.Range(-this.popRange, this.popRange),
+            0f,
+            Random.Range(-this.popRange, this.popRange)
+        );
+    }
     
 	public GameObject boidsBoss;
     public GameObject boidsCenter;
     public Vector3 centerpos;
     public Vector3 debugAvarage;
+    protected virtual Vector3 NearSensor(Vector3 _velocity, Vector3 _posA, Vector3 _posB){
+        Vector3 diff = _posA - _posB;
+        if (diff.magnitude < Random.Range(2, this.personalSpace))
+        {
+            var magnitude = _velocity.magnitude / this.leaveVelocity;
+            var gravity = _velocity.y;
+            var a = diff.normalized * magnitude;
+            return new Vector3(
+                a.x,
+                a.y + gravity,
+                a.z
+                );
+        }
+        return _velocity;
+    }
 	// Update is called once per frame
 	void Update () {
+
         // 距離を取る
         foreach (ChildType child_a in this.boidsChildren)
         {
+            // ボスとの距離を取る
+            if( this.boidsBoss != null ){
+                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.position, this.boidsBoss.transform.position );
+
+            }
             foreach (ChildType child_b in this.boidsChildren)
             {
                 if ( System.Object.ReferenceEquals( child_a, child_b ) )
@@ -93,18 +124,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                     continue;
                 }
         
-                Vector3 diff = child_a.transform.position - child_b.transform.position;
-        
-                if (diff.magnitude < Random.Range(2, this.personalSpace))
-                {
-                    var gravity = child_a.velocity.y;
-                    var a = diff.normalized * child_a.velocity.magnitude;
-                    child_a.velocity = new Vector3(
-                        a.x,
-                        a.y + gravity,
-                        a.z
-                     );
-                }
+                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.position, child_b.transform.position );
             }
         }
 

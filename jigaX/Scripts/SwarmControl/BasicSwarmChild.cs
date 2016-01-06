@@ -66,7 +66,7 @@ public class BasicSwarmChild : MonoBehaviour {
 		}
 	}
 	public enum DirectionType{
-		Type1,Type2,Type3,
+		Type1,Type2,Type3,Type4,
 	}
 	public DirectionType directionType;
 	[SerializeField]List<Transform> m_bros;
@@ -344,8 +344,24 @@ public class BasicSwarmChild : MonoBehaviour {
 					);
 				break;
 			}
+            case DirectionType.Type4:{
+                this.transform.rotation = RemoveXZRot(
+                    Quaternion.Lerp(
+                        this.transform.rotation,
+                        Quaternion.LookRotation( this.rigidbody.velocity.normalized ),
+                        Time.deltaTime * 10f
+                        )
+                );
+                break;         
+            }
 		}		
 	}
+    Quaternion RemoveXZRot( Quaternion _q ){
+        var euler = _q.eulerAngles;
+        euler.x = 0f;
+        euler.z = 0f;
+        return Quaternion.Euler( euler );
+    }
 	
 	void OnDestroy(){
 		this.parent.children.Remove ( this.transform );
