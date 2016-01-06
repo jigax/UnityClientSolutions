@@ -66,7 +66,7 @@ Shader "SkyCircus/RightyCloudShadow" {
                 {
                     Input o;
                     float3 fact = ( _FactX,_FactY,_FactZ );
-                    v.vertex = vert_wave( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
+                    v.vertex = vert_wave0( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
                     o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
                     // Calc normal and light dir.
                     o.lightDir = normalize(ObjSpaceLightDir(v.vertex));
@@ -152,7 +152,7 @@ Shader "SkyCircus/RightyCloudShadow" {
                 {
                     Input o;
                     float3 fact = ( _FactX,_FactY,_FactZ );
-                    v.vertex = vert_wave( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
+                    v.vertex = vert_wave0( v.vertex, _Waves, _Time.y * _Speed , _Ignore, fact );
 
                     o.pos = mul( UNITY_MATRIX_MVP, v.vertex );
                     // Calc normal and light dir.

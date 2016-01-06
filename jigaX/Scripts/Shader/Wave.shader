@@ -49,7 +49,7 @@ Shader "jigaX/FlagWave" {
             void vert( inout appdata_full v )   {
 //          UNITY_INITIALIZE_OUTPUT(v2f, o); // must initialize 
                 float3 fact = ( _FactX,_FactY,_FactZ );
-                v.vertex = vert_wave( v.vertex, _Waves, _Times, _Ignore, fact );
+                v.vertex = vert_wave0( v.vertex, _Waves, _Times, _Ignore, fact );
             }
 
             half _Glossiness;
