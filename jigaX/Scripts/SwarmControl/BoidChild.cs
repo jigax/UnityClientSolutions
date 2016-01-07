@@ -25,6 +25,16 @@ public interface IBoidChild{
 }
 public abstract class BoidChild : MonoBehaviour, IBoidChild {
 
+    [SerializeField]protected Animator m_animator;
+    public Animator animator{
+        get{
+            if( this.m_animator == null ) this.m_animator = GetComponent<Animator>();
+            return this.m_animator;
+        }
+        set{
+            this.m_animator = value;
+        }
+    }
     public Vector3 velocity{
         get{
             return GetVelocity();

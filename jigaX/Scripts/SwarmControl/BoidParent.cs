@@ -18,13 +18,24 @@ using UnityEngine;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-//using UniRx; using UnityEngine.UI;
+using UniRx; using UnityEngine.UI;
+using UniRx.Triggers;
 
 namespace jigaX{
 public abstract class BoidParent<ChildType> : MonoBehaviour 
     where ChildType : BoidChild
 {
 
+    [SerializeField]protected Animator m_animator;
+    protected Animator animator{
+        get{
+            if( this.m_animator == null ) this.m_animator = GetComponent<Animator>();
+            return this.m_animator;
+        }
+        set{
+            this.m_animator = value;
+        }
+    }    
 	void Awake(){
 	   this.OnAwake();
 	}
@@ -34,16 +45,17 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
 
 	// Use this for initialization
     public int maxChild = 30;
-    public GameObject boidsChildPrefab;
+    public List<GameObject> boidsChildPrefab;
     public List<ChildType> boidsChildren = new List<ChildType>();
     [RangeAttribute(0f,1f)]public float turbulence = 0.5f;
     public float personalSpace = 1f;
-    [SerializeField] float speedFact = 10f;
+    [SerializeField] protected float speedFact = 10f;
     [SerializeField] float loyalty = 3f;
     [SerializeField] float quicklyOfTurn = 10f;
     [SerializeField] float popRange = 10f;
     [SerializeField] float leaveVelocity = 10f;
     [SerializeField][RangeAttribute(0f,0.5f)] float createChildDelayTime = 0.2f;
+    [HideInInspector]public Transform childHolder;
     
     enum RotType{
         Type1,Type2,Type3,Type4
@@ -54,19 +66,29 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         this.OnStart();
         for (int i = 0; i < this.maxChild; i++)
         {
-            this.boidsChildren.Add( this.CreateChild() );
+            this.CreateChild( this.GetPopPosition() );
             yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
         }
+        
+        
+        this.OnFinishCreateChildren();
     }
-    
-    protected ChildType CreateChild(){
+    protected ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
-        var g = Instantiate( this.boidsChildPrefab ) as GameObject;
+        var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count - 1 ) ] ) as GameObject;
+        g.transform.SetParent( this.childHolder );
+        g.transform.localScale = Vector3.one;
+        g.transform.position = defaultPosition;
 
-        g.transform.position = this.GetPopPosition();
         var child = g.AddComponent<ChildType>();
 
+
         if( child == null ) return null;
+
+        // child.OnDestroyAsObservable().Subscribe( _ =>{
+        //     this.CreateChild( this.transform.position );
+        //     this.boidsChildren.Remove( child );            
+        // });
 
         switch( this.type ){
             case RotType.Type1 : this.ApplyRot += this.ApplyType1Rot; break;
@@ -74,26 +96,35 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             case RotType.Type3 : this.ApplyRot += this.ApplyType3Rot; break;
             case RotType.Type4 : this.ApplyRot += this.ApplyType4Rot; break;
         }
+
+        this.boidsChildren.Add( child );
+        
+        this.OnFinishCreateChild();
         return child;
     }
     protected virtual Vector3 GetPopPosition(){
         return this.transform.position + this.GetRandomVector3ForPopPoint();
     }
-    protected virtual Vector3 GetRandomVector3ForPopPoint(){
+    public virtual Vector3 GetRandomVector3ForPopPoint(){
         return new Vector3 (
             Random.Range(-this.popRange, this.popRange),
             0f,
             Random.Range(-this.popRange, this.popRange)
         );
     }
-    
+    protected virtual void OnFinishCreateChild(){}
+    protected virtual void OnFinishCreateChildren(){}
+
 	public GameObject boidsBoss;
     public GameObject boidsCenter;
     public Vector3 centerpos;
     public Vector3 debugAvarage;
+    bool IsTooNeary( Vector3 a, Vector3 b ){
+        return Vector3.Distance( a, b ) < this.personalSpace;
+    }
     protected virtual Vector3 NearSensor(Vector3 _velocity, Vector3 _posA, Vector3 _posB){
         Vector3 diff = _posA - _posB;
-        if (diff.magnitude < Random.Range(2, this.personalSpace))
+        if (diff.magnitude < Random.Range(0, this.personalSpace))
         {
             var magnitude = _velocity.magnitude / this.leaveVelocity;
             var gravity = _velocity.y;
@@ -102,7 +133,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                 a.x,
                 a.y + gravity,
                 a.z
-                );
+           );
         }
         return _velocity;
     }
@@ -113,9 +144,9 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         foreach (ChildType child_a in this.boidsChildren)
         {
             // ボスとの距離を取る
-            if( this.boidsBoss != null ){
-                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.position, this.boidsBoss.transform.position );
-
+            if( this.boidsBoss != null && this.IsTooNeary( child_a.transform.position, this.boidsBoss.transform.position )){
+                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, this.boidsBoss.transform.localPosition );
+                continue;
             }
             foreach (ChildType child_b in this.boidsChildren)
             {
@@ -123,8 +154,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                 {
                     continue;
                 }
-        
-                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.position, child_b.transform.position );
+                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, child_b.transform.localPosition );
             }
         }
 
@@ -132,6 +162,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         Vector3 center = this.GetCenter();
         this.centerpos = center;
         if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
+
         foreach (var child in this.boidsChildren)
         {
         
