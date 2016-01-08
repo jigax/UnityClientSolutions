@@ -54,9 +54,10 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField] float quicklyOfTurn = 10f;
     [SerializeField] float popRange = 10f;
     [SerializeField] float leaveVelocity = 10f;
+    [SerializeField]float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
     [SerializeField][RangeAttribute(0f,0.5f)] float createChildDelayTime = 0.2f;
     [HideInInspector]public Transform childHolder;
-    
+    public float GetSpeedFact(){return this.speedFact;}
     enum RotType{
         Type1,Type2,Type3,Type4
     }
@@ -137,17 +138,43 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         }
         return _velocity;
     }
+    protected abstract Vector3 GetVelocity(); // ボスの向かいたい方向を得る
 	// Update is called once per frame
 	void Update () {
+
+
+        Vector3 center = this.GetCenter();
+        this.centerpos = center;
+        if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
+
+        // 中央への移動
+        foreach (var child in this.boidsChildren)
+        {
+        
+            // Vector3 dirToCenter = ( center - child.transform.position).normalized;
+            // Vector3 direction = ( child.velocity.normalized * this.turbulence
+            //                     + dirToCenter * (1 - this.turbulence)).normalized;
+        
+            // direction *= Random.Range(20f, 30f);
+            //child.velocity = direction;
+        }
 
         // 距離を取る
         foreach (ChildType child_a in this.boidsChildren)
         {
+            // 中央への移動
+            Vector3 dirToCenter = ( center - child_a.transform.position).normalized;
+            Vector3 direction = ( child_a.velocity.normalized * this.turbulence
+                                + dirToCenter * (1 - this.turbulence)).normalized;
+        
+            child_a.velocity = direction * Random.Range(20f, 30f);
+            
             // ボスとの距離を取る
             if( this.boidsBoss != null && this.IsTooNeary( child_a.transform.position, this.boidsBoss.transform.position )){
                 child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, this.boidsBoss.transform.localPosition );
-                continue;
+                //continue;
             }
+            // その他大勢
             foreach (ChildType child_b in this.boidsChildren)
             {
                 if ( System.Object.ReferenceEquals( child_a, child_b ) )
@@ -158,21 +185,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             }
         }
 
-        // 中央への移動
-        Vector3 center = this.GetCenter();
-        this.centerpos = center;
-        if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
-
-        foreach (var child in this.boidsChildren)
-        {
-        
-            Vector3 dirToCenter = ( center - child.transform.position).normalized;
-            Vector3 direction = ( child.velocity.normalized * this.turbulence
-                                + dirToCenter * (1 - this.turbulence)).normalized;
-        
-            direction *= Random.Range(20f, 30f);
-            child.velocity = direction;
-        }
         
         // 平均速度を適用
         Vector3 averageVelocity = this.GetAvarageVelocity();
@@ -181,12 +193,15 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         {
             child.velocity = child.velocity * this.turbulence
                                     + averageVelocity * (1f - this.turbulence);
-            child.velocity = child.velocity.normalized * this.speedFact;
+            child.velocity = child.velocity.normalized;
+            
+            // ボスの意向を混ぜる
+            child.velocity = ( ( child.velocity + ( this.GetVelocity() * this.bossIntention / 100f ) ).normalized  ) * this.speedFact;
+            
+        }
+        foreach ( ChildType child in this.boidsChildren ){
             this.ApplyRot( child );
         }
-        // foreach ( ChildType child in this.boidsChildren ){
-        //     this.ApplyRot( child );
-        // }
         this.OnUpdate();
 	}
         // どの方式で回転するかを指定される

@@ -46,7 +46,7 @@ public class BoidChildWithChrctCntrlr : BoidChild {
         }
     }
     void Update(){
-        this.controller.SimpleMove( this.velocityVal );
+        // this.controller.SimpleMove( this.velocityVal ); // 継承先でやる
         this.OnUpdate();
     }
     protected virtual void OnUpdate(){}
