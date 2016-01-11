@@ -67,12 +67,13 @@ public class Snapper : MonoBehaviour {
 	public bool isHorming = true;
 	public float defaultSnapSpeed = 1f;
 	public bool autoDestroyOnFinish = false;
+    protected float snapSpeed;
 	IEnumerator DoSnap(){
 		yield return new WaitForSeconds(this.delayTime);
 		if( this.OnStartSnapReaction != null) this.OnStartSnapReaction();
 		float progress = 0f;
 		this.from = this.transform.position;
-		var snapSpeed = this.defaultSnapSpeed;
+		this.snapSpeed = this.defaultSnapSpeed;
 		while( progress < 1f && snapSpeed > 0f ){
 			if( this.useSlerp ){
 				this.transform.position = Vector3.Slerp( this.from, targetPosition, progress );
@@ -81,8 +82,8 @@ public class Snapper : MonoBehaviour {
 			}
 			if( this.OnUpdateSnap != null ) this.OnUpdateSnap( progress );
 			// 徐々に早く
-			snapSpeed += snapSpeed * 0.1f;
-			progress += Time.deltaTime * snapSpeed;
+			this.snapSpeed += snapSpeed * 0.1f;
+			progress += Time.deltaTime * this.snapSpeed;
 			yield return null;
 		}
 		
