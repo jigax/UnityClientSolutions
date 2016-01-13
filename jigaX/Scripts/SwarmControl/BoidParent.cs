@@ -68,27 +68,27 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         for (int i = 0; i < this.maxChild; i++)
         {
             this.CreateChild( this.GetPopPosition() );
-            yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
+            //yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
         }
-        
-        
         this.OnFinishCreateChildren();
+        yield return 0;
     }
     protected ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
         var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count - 1 ) ] ) as GameObject;
+        // Debug.Log("Create child and break!");
+        // Debug.Break();
         g.transform.SetParent( this.childHolder );
         g.transform.localScale = Vector3.one;
         g.transform.position = defaultPosition;
 
         var child = g.AddComponent<ChildType>();
 
-
         if( child == null ) return null;
 
         // child.OnDestroyAsObservable().Subscribe( _ =>{
         //     this.CreateChild( this.transform.position );
-        //     this.boidsChildren.Remove( child );            
+        //     this.boidsChildren.Remove( child );
         // });
 
         switch( this.type ){
