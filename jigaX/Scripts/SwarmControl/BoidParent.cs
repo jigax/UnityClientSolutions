@@ -83,6 +83,10 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         g.transform.position = defaultPosition;
 
         var child = g.AddComponent<ChildType>();
+        this.boidsChildren.Add( child );
+        child.OnDestroyAsObservable().Subscribe( _=> {
+            this.boidsChildren.Remove( child );
+        });
 
         if( child == null ) return null;
 
@@ -97,8 +101,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             case RotType.Type3 : this.ApplyRot += this.ApplyType3Rot; break;
             case RotType.Type4 : this.ApplyRot += this.ApplyType4Rot; break;
         }
-
-        this.boidsChildren.Add( child );
         
         this.OnFinishCreateChild();
         return child;
