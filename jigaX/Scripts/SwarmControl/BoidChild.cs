@@ -44,8 +44,20 @@ public abstract class BoidChild : MonoBehaviour, IBoidChild {
             SetVelocity( value );
         }
     }
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    public void SetStateString(string state){
+        this.debugState = state;
+    }
+    [SerializeField]string debugState;
+    
+    [HideInInspector]public bool readyToStart = false;
     protected abstract void SetVelocity( Vector3 _val );
     protected abstract Vector3 GetVelocity();
+    public virtual bool IsMustRotate(){
+        return true;
+    }
+
+
 }
 
 } // namespace
