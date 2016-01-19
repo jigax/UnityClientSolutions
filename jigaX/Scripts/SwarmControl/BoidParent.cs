@@ -56,7 +56,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField] float popRange = 10f;
     [SerializeField] float leaveVelocity = 10f;
     [SerializeField]float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
-    [SerializeField][RangeAttribute(0f,0.5f)] float createChildDelayTime = 0.2f;
+    [SerializeField][RangeAttribute(0f,2f)] float createChildDelayTime = 0.2f;
     [HideInInspector]public Transform childHolder;
     
     public enum NativeState{
@@ -78,7 +78,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         for (int i = 0; i < this.maxChild; i++)
         {
             this.CreateChild( this.GetPopPosition() );
-            yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
+            yield return new WaitForSeconds( this.createChildDelayTime );
         }
         this.OnFinishCreateChildren();
         yield return 0;
