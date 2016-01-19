@@ -84,7 +84,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     }
     protected ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
-        var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count - 1 ) ] ) as GameObject;
+        var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count ) ] ) as GameObject;
         // Debug.Log("Create child and break!");
         // Debug.Break();
         g.transform.SetParent( this.childHolder );
