@@ -132,7 +132,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
 
 	public GameObject boidsBoss;
     public GameObject boidsCenter;
-    public Vector3 centerpos;
+    [HideInInspector]public Vector3 centerpos;
     public Vector3 debugAvarage;
     bool IsTooNeary( Vector3 a, Vector3 b ){
         return Vector3.Distance( a, b ) < this.personalSpace;
@@ -219,7 +219,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         foreach (ChildType child in this.boidsChildren)
         {
             child.velocity += child.velocity * this.turbulence
-                                    + averageVelocity* 0.3f * (1f - this.turbulence);
+                                    + averageVelocity * 0.1f * (1f - this.turbulence);
             child.velocity = child.velocity.normalized * this.speedFact;
             
             // ボスの意向を混ぜる
@@ -304,7 +304,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         
         return averageVelocity;        
     }
-    
     
     
 }
