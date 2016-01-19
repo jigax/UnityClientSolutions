@@ -73,6 +73,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField] RotType type;
     IEnumerator Start ()
     {
+        this.boidsChildren.Clear();
         this.OnStart();
         for (int i = 0; i < this.maxChild; i++)
         {
@@ -90,6 +91,8 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         g.transform.SetParent( this.childHolder );
         g.transform.localScale = this.transform.localScale;
         g.transform.position = defaultPosition;
+        g.transform.LookAt( this.boidsBoss.transform ); 
+        g.transform.rotation = RemoveXZRot( g.transform.rotation );
 
         var child = g.AddComponent<ChildType>();
         this.boidsChildren.Add( child );
@@ -216,8 +219,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         foreach (ChildType child in this.boidsChildren)
         {
             child.velocity += child.velocity * this.turbulence
-                                    + averageVelocity * (1f - this.turbulence);
-            child.velocity *= 0.3f;
+                                    + averageVelocity* 0.3f * (1f - this.turbulence);
             child.velocity = child.velocity.normalized * this.speedFact;
             
             // ボスの意向を混ぜる
