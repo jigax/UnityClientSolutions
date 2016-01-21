@@ -75,14 +75,18 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     {
         this.boidsChildren.Clear();
         this.OnStart();
-        for (int i = 0; i < this.maxChild; i++)
+        yield return StartCoroutine( this.CreateChildren() );
+    }
+    
+    protected IEnumerator CreateChildren(){
+        while ( this.boidsChildren.Count < this.maxChild )
         {
             this.CreateChild( this.GetPopPosition() );
             yield return new WaitForSeconds( this.createChildDelayTime );
-        }
+        }        
         this.OnFinishCreateChildren();
-        yield return 0;
     }
+    
     protected ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
         var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count ) ] ) as GameObject;
@@ -171,6 +175,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         // 距離を取る
         foreach (ChildType child_a in this.boidsChildren)
         {
+            if( ! child_a.IsFollowableState() ) continue;
             // state が集合だった場合は強制的にボス方向へ向かわせる
             if( this.boidsBoss != null && this.nativeState == NativeState.Reqruite ){
                 var d = this.boidsBoss.transform.position - child_a.transform.position;
@@ -218,6 +223,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         this.debugAvarage = averageVelocity;
         foreach (ChildType child in this.boidsChildren)
         {
+            if( ! child.IsFollowableState() ) continue;
             child.velocity += child.velocity * this.turbulence
                                     + averageVelocity * 0.1f * (1f - this.turbulence);
             child.velocity = child.velocity.normalized * this.speedFact;
@@ -227,6 +233,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             
         }
         foreach ( ChildType child in this.boidsChildren ){
+            if( ! child.IsFollowableState() ) continue;
             if( child.IsMustRotate() )
                 this.ApplyRot( child );
         }        

@@ -44,6 +44,7 @@ public abstract class BoidChild : MonoBehaviour, IBoidChild {
             SetVelocity( value );
         }
     }
+    public virtual bool IsFollowableState(){return true;}
     [System.Diagnostics.Conditional("UNITY_EDITOR")]
     public void SetStateString(string state){
         this.debugState = state;
