@@ -52,11 +52,20 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField] protected float speedFact = 10f;
     [SerializeField] float loyalty = 3f;
     [SerializeField] float quicklyOfTurn = 10f;
+    public float GetQuicklyOfTurn(){return this.quicklyOfTurn;}
     [SerializeField] float popRange = 10f;
     [SerializeField] float leaveVelocity = 10f;
     [SerializeField]float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
-    [SerializeField][RangeAttribute(0f,0.5f)] float createChildDelayTime = 0.2f;
+    [SerializeField][RangeAttribute(0f,2f)] float createChildDelayTime = 0.2f;
     [HideInInspector]public Transform childHolder;
+    
+    public enum NativeState{
+        Reqruite,
+        Follow,
+        Stay,
+    }
+    public NativeState nativeState;
+    
     public float GetSpeedFact(){return this.speedFact;}
     enum RotType{
         Type1,Type2,Type3,Type4
@@ -64,31 +73,42 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField] RotType type;
     IEnumerator Start ()
     {
+        this.boidsChildren.Clear();
         this.OnStart();
-        for (int i = 0; i < this.maxChild; i++)
+        yield return StartCoroutine( this.CreateChildren() );
+    }
+    
+    protected IEnumerator CreateChildren(){
+        while ( this.boidsChildren.Count < this.maxChild )
         {
             this.CreateChild( this.GetPopPosition() );
-            yield return new WaitForSeconds( UnityEngine.Random.Range(0f, this.createChildDelayTime ) );
-        }
-        
-        
+            yield return new WaitForSeconds( this.createChildDelayTime );
+        }        
         this.OnFinishCreateChildren();
     }
+    
     protected ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
-        var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count - 1 ) ] ) as GameObject;
+        var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count ) ] ) as GameObject;
+        // Debug.Log("Create child and break!");
+        // Debug.Break();
         g.transform.SetParent( this.childHolder );
-        g.transform.localScale = Vector3.one;
+        g.transform.localScale = this.transform.localScale;
         g.transform.position = defaultPosition;
+        g.transform.LookAt( this.boidsBoss.transform ); 
+        g.transform.rotation = RemoveXZRot( g.transform.rotation );
 
         var child = g.AddComponent<ChildType>();
-
+        this.boidsChildren.Add( child );
+        child.OnDestroyAsObservable().Subscribe( _=> {
+            this.boidsChildren.Remove( child );
+        });
 
         if( child == null ) return null;
 
         // child.OnDestroyAsObservable().Subscribe( _ =>{
         //     this.CreateChild( this.transform.position );
-        //     this.boidsChildren.Remove( child );            
+        //     this.boidsChildren.Remove( child );
         // });
 
         switch( this.type ){
@@ -97,8 +117,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             case RotType.Type3 : this.ApplyRot += this.ApplyType3Rot; break;
             case RotType.Type4 : this.ApplyRot += this.ApplyType4Rot; break;
         }
-
-        this.boidsChildren.Add( child );
         
         this.OnFinishCreateChild();
         return child;
@@ -118,7 +136,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
 
 	public GameObject boidsBoss;
     public GameObject boidsCenter;
-    public Vector3 centerpos;
+    [HideInInspector]public Vector3 centerpos;
     public Vector3 debugAvarage;
     bool IsTooNeary( Vector3 a, Vector3 b ){
         return Vector3.Distance( a, b ) < this.personalSpace;
@@ -141,69 +159,87 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     protected abstract Vector3 GetVelocity(); // ボスの向かいたい方向を得る
 	// Update is called once per frame
 	void Update () {
-
-
-        Vector3 center = this.GetCenter();
-        this.centerpos = center;
+        this.UpdateVelocities();
+        this.OnUpdate();
+	}
+    
+    void UpdateVelocities(){
+        Vector3 center;
+        this.centerpos = center = this.GetCenter();
         if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
 
-        // 中央への移動
-        foreach (var child in this.boidsChildren)
-        {
-        
-            // Vector3 dirToCenter = ( center - child.transform.position).normalized;
-            // Vector3 direction = ( child.velocity.normalized * this.turbulence
-            //                     + dirToCenter * (1 - this.turbulence)).normalized;
-        
-            // direction *= Random.Range(20f, 30f);
-            //child.velocity = direction;
+        if( this.boidsBoss != null && this.nativeState == NativeState.Stay ){
+            return;
         }
 
         // 距離を取る
         foreach (ChildType child_a in this.boidsChildren)
         {
+            if( ! child_a.IsFollowableState() ) continue;
+            // state が集合だった場合は強制的にボス方向へ向かわせる
+            if( this.boidsBoss != null && this.nativeState == NativeState.Reqruite ){
+                var d = this.boidsBoss.transform.position - child_a.transform.position;
+                child_a.velocity = d.normalized * this.speedFact ;
+                continue; 
+            }
+
+
             // 中央への移動
-            Vector3 dirToCenter = ( center - child_a.transform.position).normalized;
+            Vector3 dirToCenter = ( center - child_a.transform.position ).normalized;
             Vector3 direction = ( child_a.velocity.normalized * this.turbulence
                                 + dirToCenter * (1 - this.turbulence)).normalized;
         
-            child_a.velocity = direction * Random.Range(20f, 30f);
+            child_a.velocity = direction * this.speedFact;
             
             // ボスとの距離を取る
             if( this.boidsBoss != null && this.IsTooNeary( child_a.transform.position, this.boidsBoss.transform.position )){
-                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, this.boidsBoss.transform.localPosition );
-                //continue;
+//                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, this.boidsBoss.transform.localPosition );
+                var diff = this.boidsBoss.transform.position - child_a.transform.position;
+                if( diff.magnitude < this.personalSpace ){
+                    child_a.velocity = - diff.normalized * child_a.velocity.magnitude / this.leaveVelocity;
+                }
             }
-            // その他大勢
+            
+            
+            // その他大勢との距離
             foreach (ChildType child_b in this.boidsChildren)
             {
                 if ( System.Object.ReferenceEquals( child_a, child_b ) )
                 {
                     continue;
                 }
-                child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, child_b.transform.localPosition );
+                // child_a.velocity = this.NearSensor( child_a.velocity, child_a.transform.localPosition, child_b.transform.localPosition );
+                
+                var diff = child_a.transform.position - child_b.transform.position;
+                if( diff.magnitude < this.personalSpace ){
+                    child_a.velocity = diff.normalized * child_a.velocity.magnitude / this.leaveVelocity;
+                }
             }
         }
-
+        
         
         // 平均速度を適用
         Vector3 averageVelocity = this.GetAvarageVelocity();
         this.debugAvarage = averageVelocity;
         foreach (ChildType child in this.boidsChildren)
         {
-            child.velocity = child.velocity * this.turbulence
-                                    + averageVelocity * (1f - this.turbulence);
-            child.velocity = child.velocity.normalized;
+            if( ! child.IsFollowableState() ) continue;
+            child.velocity += child.velocity * this.turbulence
+                                    + averageVelocity * 0.1f * (1f - this.turbulence);
+            child.velocity = child.velocity.normalized * this.speedFact;
             
             // ボスの意向を混ぜる
-            child.velocity = ( ( child.velocity + ( this.GetVelocity() * this.bossIntention / 100f ) ).normalized  ) * this.speedFact;
+            // child.velocity = ( ( child.velocity + ( this.GetVelocity() * this.bossIntention / 100f ) ).normalized  );
             
         }
         foreach ( ChildType child in this.boidsChildren ){
-            this.ApplyRot( child );
-        }
-        this.OnUpdate();
-	}
+            if( ! child.IsFollowableState() ) continue;
+            if( child.IsMustRotate() )
+                this.ApplyRot( child );
+        }        
+    }
+    
+    
         // どの方式で回転するかを指定される
     public System.Action<ChildType> ApplyRot;
 
@@ -239,7 +275,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                 )
         );
     }
-    Quaternion RemoveXZRot( Quaternion _q ){
+    public static Quaternion RemoveXZRot( Quaternion _q ){
         var euler = _q.eulerAngles;
         euler.x = 0f;
         euler.z = 0f;
@@ -248,6 +284,9 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     
     // 群れの中心を得る
     public Vector3 GetCenter(){
+        
+        if( this.loyalty < 0f ) return this.boidsBoss.transform.position; 
+        
         Vector3 center = Vector3.zero;
 
         foreach ( var child in this.boidsChildren )
@@ -263,17 +302,15 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     
     public Vector3 GetAvarageVelocity(){
         Vector3 averageVelocity = Vector3.zero;
-        var i = 0;
         foreach (ChildType child in this.boidsChildren)
         {
             averageVelocity += child.velocity;
         }
-        
-        averageVelocity /= this.boidsChildren.Count;
+        averageVelocity += this.GetVelocity();
+        averageVelocity /= this.boidsChildren.Count + 1;
         
         return averageVelocity;        
     }
-    
     
     
 }
