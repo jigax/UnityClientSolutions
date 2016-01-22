@@ -183,7 +183,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                 continue; 
             }
 
-
             // 中央への移動
             Vector3 dirToCenter = ( center - child_a.transform.position ).normalized;
             Vector3 direction = ( child_a.velocity.normalized * this.turbulence
@@ -302,12 +301,16 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     
     public Vector3 GetAvarageVelocity(){
         Vector3 averageVelocity = Vector3.zero;
+        var count = 0;
         foreach (ChildType child in this.boidsChildren)
         {
-            averageVelocity += child.velocity;
+            if( child.IsFollowableState() ){
+                averageVelocity += child.velocity;
+                count ++ ;
+            }
         }
         averageVelocity += this.GetVelocity();
-        averageVelocity /= this.boidsChildren.Count + 1;
+        averageVelocity /= count + 1;
         
         return averageVelocity;        
     }
