@@ -21,10 +21,9 @@ public class Popper : MonoBehaviour {
 	[SerializeField] bool useOriginScale = false;
 	[SerializeField] bool isInRoot = false;
 	[SerializeField] bool isInCanvas = false;
+    public Transform parentTarget; 
 	bool fail = false;
 	// Use this for initialization
-	void Start () {
-	}
 	void OnEnable(){
 		if( popTargetPrefab == null ){
 			Debug.LogError( "popTarget is null",this );
@@ -41,39 +40,34 @@ public class Popper : MonoBehaviour {
 		if( this.instance != null){
 			this.instance.SetActive(true);
 		}		
-		
-		
 	}
 	
 	// Update is called once per frame
-	void Update () {
-	}
-	public Vector3 originScale;
+	Vector3 originScale;
 	IEnumerator Pop(){
 		var g = Instantiate( this.popTargetPrefab );
 		this.OnPop(g);
 		this.instance = g;
-		var o = g.transform.localScale;
-		originScale = o;
-		Transform parent = this.transform;
+		this.originScale = g.transform.localScale;
+		Transform parent = this.parentTarget;
 		if( this.isInRoot ){
 			parent = null;
-		}else if( this.isInCanvas ){
+		}else if( this.isInCanvas && parent == null ){
 			var canvas = GameObject.Find("Canvas");
 			if( canvas == null ){
-				Debug.LogError("canvas not found",this);
+				Debug.LogError( "canvas not found" ,this );
 				Debug.Break();
 			}
 			g.transform.SetParent( canvas.transform );
 			if( this.useOriginScale ){
-				g.transform.localScale = o;
+				g.transform.localScale = originScale;
 			}else{
 				g.transform.localScale = Vector3.one;
 			}
 			yield break;
 		}
 		
-		g.transform.parent = parent;
+		g.transform.SetParent( parent );
 		g.transform.localPosition = Vector3.zero;
 		g.transform.localRotation = Quaternion.Euler( Vector3.zero );
 		g.transform.localScale = Vector3.zero;
@@ -86,15 +80,16 @@ public class Popper : MonoBehaviour {
 			yield return new WaitForSeconds( this.autoDelay );
 		}
 		
+        // coroutine animation 用の進捗管理変数
 		float progress = 0f;
 		
-		if( animationSpeed != 0f ){
+		if( animationSpeed > 0f ){
 			while (progress <= 1f)
 			{
 				var xz = this.xzScale.Evaluate(progress);
 				var y = this.yScale.Evaluate(progress);
 				if( this.useOriginScale ){
-					g.transform.localScale = new Vector3( o.x * xz , o.y * y, o.z * xz );
+					g.transform.localScale = new Vector3( originScale.x * xz , originScale.y * y, originScale.z * xz );
 				}else{
 					g.transform.localScale = new Vector3( xz, y, xz );				
 				}
@@ -104,7 +99,7 @@ public class Popper : MonoBehaviour {
 		}
 		
 		if( this.useOriginScale ){
-			g.transform.localScale = o;
+			g.transform.localScale = originScale;
 		}else{
 			g.transform.localScale = Vector3.one;
 		}
