@@ -175,6 +175,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         // 距離を取る
         foreach (ChildType child_a in this.boidsChildren)
         {
+            if ( child_a == null ) continue; 
             if( ! child_a.IsFollowableState() ) continue;
             // state が集合だった場合は強制的にボス方向へ向かわせる
             if( this.boidsBoss != null && this.nativeState == NativeState.Reqruite ){
@@ -203,6 +204,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             // その他大勢との距離
             foreach (ChildType child_b in this.boidsChildren)
             {
+                if( child_b == null ) continue;
                 if ( System.Object.ReferenceEquals( child_a, child_b ) )
                 {
                     continue;
@@ -222,6 +224,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         this.debugAvarage = averageVelocity;
         foreach (ChildType child in this.boidsChildren)
         {
+            if ( child == null ) continue; 
             if( ! child.IsFollowableState() ) continue;
             child.velocity += child.velocity * this.turbulence
                                     + averageVelocity * 0.1f * (1f - this.turbulence);
@@ -232,6 +235,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             
         }
         foreach ( ChildType child in this.boidsChildren ){
+            if ( child == null ) continue; 
             if( ! child.IsFollowableState() ) continue;
             if( child.IsMustRotate() )
                 this.ApplyRot( child );
@@ -290,6 +294,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
 
         foreach ( var child in this.boidsChildren )
         {
+            if ( child == null ) continue; 
             center += child.transform.position;
         }
         
@@ -304,6 +309,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         var count = 0;
         foreach (ChildType child in this.boidsChildren)
         {
+            if ( child == null ) continue; 
             if( child.IsFollowableState() ){
                 averageVelocity += child.velocity;
                 count ++ ;
