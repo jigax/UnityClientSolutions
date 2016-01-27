@@ -18,7 +18,6 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 //using UniRx;
-using UnityEngine;
 
 namespace jigaX{
 public interface IInitializable{
