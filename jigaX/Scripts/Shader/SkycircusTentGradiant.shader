@@ -9,10 +9,10 @@
 
 Shader "SkyCircus/TentGradiant" {
 	Properties {
-		_TopColor ("U + Color", Color) = (1,1,1,1)
-		_BotColor ("U - Color", Color) = (1,1,1,1)
-		_LeftColor ("V + Color", Color) = (1,1,1,1)
-		_RightColor ("V - Color", Color) = (1,1,1,1)
+		_LeftColor ("U - Color", Color) = (1,1,1,1)
+		_RightColor ("U + Color", Color) = (1,1,1,1)
+		_BotColor ("V - Color", Color) = (1,1,1,1)
+		_TopColor ("V + Color", Color) = (1,1,1,1)
 		_MainTex ("Albedo (RGB)", 2D) = "white" {}
         _Factor ("Factor", Float) = 0.5
         _TimeFactor( "Time Factor", Float ) = 0
@@ -73,9 +73,9 @@ Shader "SkyCircus/TentGradiant" {
             );
 			fixed4 c = tex2D (_MainTex, uv );
             if( _UorV >= 0.5 ){
-    			o.Albedo = c.rgb + lerp( _TopColor.rgb, _BotColor.rgb, uv.x ) * _Factor;
+                o.Albedo = c.rgb + lerp( _LeftColor.rgb, _RightColor.rgb, uv.x ) * _Factor;                
             }else{
-                o.Albedo = c.rgb + lerp( _LeftColor.rgb, _RightColor.rgb, uv.y ) * _Factor;                
+    			o.Albedo = c.rgb + lerp( _TopColor.rgb,_BotColor.rgb, uv.y ) * _Factor;
             }
 			o.Alpha = 1;
 		}
