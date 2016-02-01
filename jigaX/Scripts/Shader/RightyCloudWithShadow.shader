@@ -9,7 +9,7 @@
 -------------------------------------------------*/
 
 
-Shader "SkyCircus/RightyCloudShadow" {
+Shader "jigaX/RightyCloudShadow" {
 	Properties {
         _MainTex ("Albedo (RGB)", 2D) = "white" {}
 		_AmbientColor ("Ambient Color", Color) = (1,1,1,1)

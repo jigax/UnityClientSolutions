@@ -21,6 +21,7 @@ Shader "SkyCircus/TentGradiant" {
 	SubShader {
 		Tags { "Queue"="Transparent" "IgnoreProjector"="True"}
 		LOD 200
+        Cull Off
         Material {
             Diffuse (1,1,1,1)
             Ambient (1,1,1,1)
