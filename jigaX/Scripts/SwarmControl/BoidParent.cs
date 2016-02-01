@@ -68,7 +68,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     
     public float GetSpeedFact(){return this.speedFact;}
     enum RotType{
-        Type1,Type2,Type3,Type4
+        Type1,Type2,Type3,Type4,Type5,Type6,
     }
     [SerializeField] RotType type;
     IEnumerator Start ()
@@ -116,6 +116,8 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             case RotType.Type2 : this.ApplyRot += this.ApplyType2Rot; break;
             case RotType.Type3 : this.ApplyRot += this.ApplyType3Rot; break;
             case RotType.Type4 : this.ApplyRot += this.ApplyType4Rot; break;
+            case RotType.Type5 : this.ApplyRot += this.ApplyType5Rot; break;
+            case RotType.Type6 : this.ApplyRot += this.ApplyType6Rot; break;
         }
         
         this.OnFinishCreateChild();
@@ -237,7 +239,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         foreach ( ChildType child in this.boidsChildren ){
             if ( child == null ) continue; 
             if( ! child.IsFollowableState() ) continue;
-            if( child.IsMustRotate() )
+            if( child.IsMustRotate() && this.ApplyRot != null )
                 this.ApplyRot( child );
         }        
     }
@@ -277,6 +279,21 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
                 Time.deltaTime * this.quicklyOfTurn
                 )
         );
+    }
+    protected virtual void ApplyType5Rot( ChildType _child ){
+        // type5
+        var r = _child.velocity;
+        _child.transform.rotation = 
+            Quaternion.Lerp(
+                _child.transform.rotation,
+                Quaternion.LookRotation( r.normalized ),
+                Time.deltaTime * this.quicklyOfTurn
+                );
+    }
+    protected virtual void ApplyType6Rot( ChildType _child ){
+        // type6
+        var r = _child.velocity;
+        _child.transform.rotation = Quaternion.LookRotation(r);
     }
     public static Quaternion RemoveXZRot( Quaternion _q ){
         var euler = _q.eulerAngles;
