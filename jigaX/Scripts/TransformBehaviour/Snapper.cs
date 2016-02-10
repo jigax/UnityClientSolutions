@@ -27,7 +27,7 @@ public class Snapper : MonoBehaviour {
 		get{return this.m_target;}
 		set{
 			if( value == null ) return;
-			this.targetPosition = value.position;
+			this.targetPosition = this.isLocal ? value.localPosition : value.position;
 			this.m_target = value;
 		}
 	}
@@ -67,27 +67,43 @@ public class Snapper : MonoBehaviour {
 	public bool isHorming = true;
 	public float defaultSnapSpeed = 1f;
 	public bool autoDestroyOnFinish = false;
+    public bool isLocal = false;
+    public float acceleration = 1f;
     protected float snapSpeed;
-	IEnumerator DoSnap(){
+	protected virtual IEnumerator DoSnap(){
 		yield return new WaitForSeconds(this.delayTime);
 		if( this.OnStartSnapReaction != null) this.OnStartSnapReaction();
 		float progress = 0f;
-		this.from = this.transform.position;
+        if( isLocal ){
+            this.from = this.transform.localPosition;
+        }else{
+            this.from = this.transform.position;
+        }
 		this.snapSpeed = this.defaultSnapSpeed;
 		while( progress < 1f && snapSpeed > 0f ){
-			if( this.useSlerp ){
-				this.transform.position = Vector3.Slerp( this.from, targetPosition, progress );
-			}else{
-				this.transform.position = Vector3.Lerp( this.from, targetPosition, progress );
-			}
+            Vector3 nextP;
+            if( this.useSlerp ){
+                nextP = Vector3.Slerp( this.from, targetPosition, progress );
+            }else{
+                nextP = Vector3.Lerp( this.from, targetPosition, progress );
+            }
+            
+            if( isLocal ){
+                this.transform.localPosition = nextP;
+            }else{
+                this.transform.position = nextP;
+            }
 			if( this.OnUpdateSnap != null ) this.OnUpdateSnap( progress );
 			// 徐々に早く
-			this.snapSpeed += snapSpeed * 0.1f;
+			this.snapSpeed +=  this.acceleration * Time.deltaTime - Time.deltaTime;
 			progress += Time.deltaTime * this.snapSpeed;
 			yield return null;
 		}
-		
-		this.transform.position = this.targetPosition;
+		if( this.isLocal ){
+            this.transform.localPosition = this.targetPosition;
+        }else{
+            this.transform.position = this.targetPosition;
+        }
 		this.isSnapping = false;
 		if( this.OnFinishSnapReaction != null )this.OnFinishSnapReaction();
 		if( this.autoDestroyOnFinish ) Destroy(this.gameObject);
