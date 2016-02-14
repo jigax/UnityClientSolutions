@@ -49,7 +49,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     public List<ChildType> boidsChildren = new List<ChildType>();
     [RangeAttribute(0f,1f)]public float turbulence = 0.5f;
     public float personalSpace = 1f;
-    [SerializeField] protected float speedFact = 10f;
+    public float speedFact = 10f;
     [SerializeField] float loyalty = 3f;
     [SerializeField] float quicklyOfTurn = 10f;
     public float GetQuicklyOfTurn(){return this.quicklyOfTurn;}
@@ -68,7 +68,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     
     public float GetSpeedFact(){return this.speedFact;}
     enum RotType{
-        Type1,Type2,Type3,Type4,Type5,Type6,
+        Type1,Type2,Type3,Type4,Type5,Type6,Type7,
     }
     [SerializeField] RotType type;
     IEnumerator Start ()
@@ -95,6 +95,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         g.transform.SetParent( this.childHolder );
         g.transform.localScale = this.transform.localScale;
         g.transform.position = defaultPosition;
+        this.boidsBoss = this.boidsBoss == null ? this.gameObject : this.boidsBoss; 
         g.transform.LookAt( this.boidsBoss.transform ); 
         g.transform.rotation = RemoveXZRot( g.transform.rotation );
 
@@ -118,6 +119,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             case RotType.Type4 : this.ApplyRot += this.ApplyType4Rot; break;
             case RotType.Type5 : this.ApplyRot += this.ApplyType5Rot; break;
             case RotType.Type6 : this.ApplyRot += this.ApplyType6Rot; break;
+            case RotType.Type7 : this.ApplyRot += this.ApplyType7Rot; break;
         }
         
         this.OnFinishCreateChild();
@@ -294,6 +296,10 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         // type6
         var r = _child.velocity;
         _child.transform.rotation = Quaternion.LookRotation(r);
+    }
+    protected virtual void ApplyType7Rot( ChildType _child ){
+        // type7
+        // no turn;
     }
     public static Quaternion RemoveXZRot( Quaternion _q ){
         var euler = _q.eulerAngles;
