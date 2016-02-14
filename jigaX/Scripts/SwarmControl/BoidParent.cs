@@ -58,7 +58,8 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [SerializeField]float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
     [SerializeField][RangeAttribute(0f,2f)] float createChildDelayTime = 0.2f;
     [HideInInspector]public Transform childHolder;
-    
+    [RangeAttribute(0f,5f)]public float accelerationPerRange = 1f;
+    public bool useAccelerationPerRange = false;
     public enum NativeState{
         Reqruite,
         Follow,
@@ -92,8 +93,9 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count ) ] ) as GameObject;
         // Debug.Log("Create child and break!");
         // Debug.Break();
+        var originScale = g.transform.localScale;
         g.transform.SetParent( this.childHolder );
-        g.transform.localScale = this.transform.localScale;
+        g.transform.localScale = originScale;
         g.transform.position = defaultPosition;
         this.boidsBoss = this.boidsBoss == null ? this.gameObject : this.boidsBoss; 
         g.transform.LookAt( this.boidsBoss.transform ); 
@@ -106,11 +108,6 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         });
 
         if( child == null ) return null;
-
-        // child.OnDestroyAsObservable().Subscribe( _ =>{
-        //     this.CreateChild( this.transform.position );
-        //     this.boidsChildren.Remove( child );
-        // });
 
         switch( this.type ){
             case RotType.Type1 : this.ApplyRot += this.ApplyType1Rot; break;
@@ -166,7 +163,17 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         this.UpdateVelocities();
         this.OnUpdate();
 	}
+    [SerializeField] float Debug_BossDistance;
     
+    float GetAccelerationValue ( Transform child ){
+        if( this.useAccelerationPerRange ){
+            float bossDistance = this.boidsBoss == null ? 0f : Vector3.Distance( child.transform.position,this.boidsBoss.transform.position );
+            var accel = bossDistance * this.accelerationPerRange;
+            Debug_BossDistance = bossDistance;
+            return accel; 
+        }
+        return 1f;
+    }
     void UpdateVelocities(){
         Vector3 center;
         this.centerpos = center = this.GetCenter();
@@ -182,9 +189,13 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             if ( child_a == null ) continue; 
             if( ! child_a.IsFollowableState() ) continue;
             // state が集合だった場合は強制的にボス方向へ向かわせる
+            
+            // bossとのきょりから加速料を算出
+            var accel = this.GetAccelerationValue ( child_a.transform );
+            
             if( this.boidsBoss != null && this.nativeState == NativeState.Reqruite ){
                 var d = this.boidsBoss.transform.position - child_a.transform.position;
-                child_a.velocity = d.normalized * this.speedFact ;
+                child_a.velocity = d.normalized * this.speedFact * accel;
                 continue; 
             }
 
@@ -230,9 +241,12 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         {
             if ( child == null ) continue; 
             if( ! child.IsFollowableState() ) continue;
+
+            var accel = this.GetAccelerationValue ( child.transform );
+
             child.velocity += child.velocity * this.turbulence
                                     + averageVelocity * 0.1f * (1f - this.turbulence);
-            child.velocity = child.velocity.normalized * this.speedFact;
+            child.velocity = child.velocity.normalized * this.speedFact * accel;
             
             // ボスの意向を混ぜる
             // child.velocity = ( ( child.velocity + ( this.GetVelocity() * this.bossIntention / 100f ) ).normalized  );
@@ -258,6 +272,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
             Time.deltaTime * 10f);
     }
     protected virtual void ApplyType2Rot( ChildType _child ){
+        if( this.boidsCenter == null ) return;
         //Type2
         _child.transform.LookAt( this.GetCenter() );
     }
@@ -300,6 +315,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     protected virtual void ApplyType7Rot( ChildType _child ){
         // type7
         // no turn;
+        _child.transform.localEulerAngles = Vector3.zero;
     }
     public static Quaternion RemoveXZRot( Quaternion _q ){
         var euler = _q.eulerAngles;
