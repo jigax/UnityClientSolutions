@@ -111,5 +111,19 @@ public class Snapper : MonoBehaviour {
 	
 	public delegate void EventHandler( float _progress );
 	public EventHandler OnUpdateSnap;
+
+    public virtual void Abort(){
+        StopCoroutine(this.snap);
+
+        if( isLocal ){
+            this.transform.localPosition = this.from;
+        }else{
+            this.transform.position = from;
+        }
+
+        this.OnStartSnapReaction = null;
+        this.OnFinishSnapReaction = null;
+    }
+
 }
 }
