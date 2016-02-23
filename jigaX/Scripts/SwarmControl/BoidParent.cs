@@ -315,7 +315,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     protected virtual void ApplyType7Rot( ChildType _child ){
         // type7
         // no turn;
-        _child.transform.localEulerAngles = Vector3.zero;
+        // _child.transform.localEulerAngles = Vector3.zero;
     }
     public static Quaternion RemoveXZRot( Quaternion _q ){
         var euler = _q.eulerAngles;
