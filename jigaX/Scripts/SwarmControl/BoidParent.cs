@@ -50,14 +50,14 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     [RangeAttribute(0f,1f)]public float turbulence = 0.5f;
     public float personalSpace = 1f;
     public float speedFact = 10f;
-    [SerializeField] float loyalty = 3f;
-    [SerializeField] float quicklyOfTurn = 10f;
+    public float loyalty = 3f;
+    public float quicklyOfTurn = 10f;
     public float GetQuicklyOfTurn(){return this.quicklyOfTurn;}
     [SerializeField] float popRange = 10f;
-    [SerializeField] float leaveVelocity = 10f;
-    [SerializeField]float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
+    public float leaveVelocity = 10f;
+    public float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
     [SerializeField][RangeAttribute(0f,2f)] float createChildDelayTime = 0.2f;
-    [HideInInspector]public Transform childHolder;
+    public Transform childHolder;
     [RangeAttribute(0f,5f)]public float accelerationPerRange = 1f;
     public bool useAccelerationPerRange = false;
     public enum NativeState{
