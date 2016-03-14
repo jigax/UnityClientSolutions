@@ -41,3 +41,14 @@ float4 vert_wave2( float4 vertex, float _Waves, float _Times, float _Ignore, flo
     return vPos;
 }
 
+float4 vert_wave( float4 vertex, float _Waves, float _Times, float _Ignore, float3 _Fact, float3 _Addition )
+{
+    float4 vPos = vertex;
+    vPos.w = vertex.w;
+
+    vPos.x = vertex.x + waveOffset( vertex.y, _Waves, _Times, _Ignore ) * ( _Fact.x) + _Addition.x;
+    vPos.y = vertex.y + waveOffset( vertex.z, _Waves, _Times, _Ignore ) * ( _Fact.y) + _Addition.y;
+    vPos.z = vertex.z + waveOffset( vertex.x, _Waves, _Times, _Ignore ) * ( _Fact.z) + _Addition.z;
+    return vPos;
+}
+
