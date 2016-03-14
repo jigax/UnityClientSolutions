@@ -53,10 +53,10 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     public float loyalty = 3f;
     public float quicklyOfTurn = 10f;
     public float GetQuicklyOfTurn(){return this.quicklyOfTurn;}
-    [SerializeField] float popRange = 10f;
+    [SerializeField] protected float popRange = 10f;
     public float leaveVelocity = 10f;
     public float bossIntention = 1f; // 移動に関するボスオブジェクトの影響力
-    [SerializeField][RangeAttribute(0f,2f)] float createChildDelayTime = 0.2f;
+    [SerializeField][RangeAttribute(0f,2f)] public float createChildDelayTime = 0.2f;
     public Transform childHolder;
     [RangeAttribute(0f,5f)]public float accelerationPerRange = 1f;
     public bool useAccelerationPerRange = false;
@@ -68,10 +68,10 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     public NativeState nativeState;
     
     public float GetSpeedFact(){return this.speedFact;}
-    enum RotType{
+    protected enum RotType{
         Type1,Type2,Type3,Type4,Type5,Type6,Type7,
     }
-    [SerializeField] RotType type;
+    [SerializeField] protected RotType type;
     IEnumerator Start ()
     {
         this.boidsChildren.Clear();
@@ -88,7 +88,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         this.OnFinishCreateChildren();
     }
     
-    protected ChildType CreateChild( Vector3 defaultPosition ){
+    protected virtual ChildType CreateChild( Vector3 defaultPosition ){
         if( this.boidsChildPrefab == null ) Debug.LogError("Boid Child is null.",this);
         var g = Instantiate( this.boidsChildPrefab[ UnityEngine.Random.Range( 0, this.boidsChildPrefab.Count ) ] ) as GameObject;
         // Debug.Log("Create child and break!");
@@ -139,7 +139,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
     public GameObject boidsCenter;
     [HideInInspector]public Vector3 centerpos;
     public Vector3 debugAvarage;
-    bool IsTooNeary( Vector3 a, Vector3 b ){
+    protected virtual bool IsTooNeary( Vector3 a, Vector3 b ){
         return Vector3.Distance( a, b ) < this.personalSpace;
     }
     protected virtual Vector3 NearSensor(Vector3 _velocity, Vector3 _posA, Vector3 _posB){
@@ -165,7 +165,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
 	}
     [SerializeField] float Debug_BossDistance;
     
-    float GetAccelerationValue ( Transform child ){
+    protected virtual float GetAccelerationValue ( Transform child ){
         if( this.useAccelerationPerRange ){
             float bossDistance = this.boidsBoss == null ? 0f : Vector3.Distance( child.transform.position,this.boidsBoss.transform.position );
             var accel = bossDistance * this.accelerationPerRange;
@@ -174,7 +174,7 @@ public abstract class BoidParent<ChildType> : MonoBehaviour
         }
         return 1f;
     }
-    void UpdateVelocities(){
+    protected virtual void UpdateVelocities(){
         Vector3 center;
         this.centerpos = center = this.GetCenter();
         if( this.boidsCenter != null ) this.boidsCenter.transform.position = center;	
