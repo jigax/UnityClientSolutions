@@ -36,7 +36,7 @@ public class Snapper : MonoBehaviour {
 	
 	public Vector3 targetPosition;
 	public float delayTime = 0f;
-	bool isSnapping = false;
+	protected bool isSnapping = false;
 	IEnumerator snap;
 	public void Snap(){
 		if( this.isSnapping ) return;
